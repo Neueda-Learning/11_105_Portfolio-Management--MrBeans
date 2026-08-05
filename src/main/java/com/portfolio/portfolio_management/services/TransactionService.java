@@ -1,17 +1,18 @@
 package com.portfolio.portfolio_management.services;
-import com.portfolio.portfolio_management.entity.Transaction;
-import jakarta.persistence.Entity;
+
+import com.portfolio.portfolio_management.dto.TransactionRequestDTO;
+import com.portfolio.portfolio_management.dto.TransactionResponseDTO;
 
 import java.util.List;
 
 public interface TransactionService {
-    List<Transaction> getAllTransactions();
+    List<TransactionResponseDTO> getAllTransactions();
 
-    Transaction getTransactionById(Long id);
+    TransactionResponseDTO getTransactionById(Long id);
 
-    Transaction createTransaction(Long investmentId ,Transaction transaction);
+    TransactionResponseDTO createTransaction(Long investmentId, TransactionRequestDTO request);
 
-    Transaction update(Long id, Transaction transaction);
+    TransactionResponseDTO update(Long id, TransactionRequestDTO request);
 
     void deleteTransaction(Long id);
 }

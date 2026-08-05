@@ -1,6 +1,7 @@
 package com.portfolio.portfolio_management.controller;
 
-import com.portfolio.portfolio_management.entity.Portfolio;
+import com.portfolio.portfolio_management.dto.PortfolioRequestDTO;
+import com.portfolio.portfolio_management.dto.PortfolioResponseDTO;
 import com.portfolio.portfolio_management.services.PortfolioService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,27 +18,27 @@ public class PortfolioController {
 
     // GET ALL PORTFOLIOS
     @GetMapping
-    public List<Portfolio> getAllPortfolios() {
+    public List<PortfolioResponseDTO> getAllPortfolios() {
         return portfolioService.getAllPortfolios();
     }
 
     // GET PORTFOLIO BY ID
     @GetMapping("/{id}")
-    public Portfolio getPortfolioById(@PathVariable Long id) {
+    public PortfolioResponseDTO getPortfolioById(@PathVariable Long id) {
         return portfolioService.getPortfolioById(id);
     }
 
     // CREATE PORTFOLIO
     @PostMapping
-    public Portfolio createPortfolio(@RequestBody Portfolio portfolio) {
-        return portfolioService.createPortfolio(portfolio);
+    public PortfolioResponseDTO createPortfolio(@RequestBody PortfolioRequestDTO request) {
+        return portfolioService.createPortfolio(request);
     }
 
     // UPDATE PORTFOLIO
     @PutMapping("/{id}")
-    public Portfolio updatePortfolio(@PathVariable Long id,
-                                     @RequestBody Portfolio portfolio) {
-        return portfolioService.updatePortfolio(id, portfolio);
+    public PortfolioResponseDTO updatePortfolio(@PathVariable Long id,
+                                                @RequestBody PortfolioRequestDTO request) {
+        return portfolioService.updatePortfolio(id, request);
     }
 
     // DELETE PORTFOLIO
@@ -45,7 +46,4 @@ public class PortfolioController {
     public void deletePortfolio(@PathVariable Long id) {
         portfolioService.deletePortfolio(id);
     }
-
-
-
 }

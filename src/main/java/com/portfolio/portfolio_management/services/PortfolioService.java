@@ -1,18 +1,19 @@
 package com.portfolio.portfolio_management.services;
-import com.portfolio.portfolio_management.entity.Portfolio;
-//import jakarta.persistence.Entity;
+
+import com.portfolio.portfolio_management.dto.PortfolioRequestDTO;
+import com.portfolio.portfolio_management.dto.PortfolioResponseDTO;
 
 import java.util.List;
 
 
 public interface PortfolioService {
-    List<Portfolio> getAllPortfolios();
+    List<PortfolioResponseDTO> getAllPortfolios();
 
-    Portfolio getPortfolioById(Long id);
+    PortfolioResponseDTO getPortfolioById(Long id);
 
-    Portfolio createPortfolio(Portfolio portfolio);
+    PortfolioResponseDTO createPortfolio(PortfolioRequestDTO request);
 
-    Portfolio updatePortfolio(Long id, Portfolio portfolio);
+    PortfolioResponseDTO updatePortfolio(Long id, PortfolioRequestDTO request);
 
     void deletePortfolio(Long id);
 }

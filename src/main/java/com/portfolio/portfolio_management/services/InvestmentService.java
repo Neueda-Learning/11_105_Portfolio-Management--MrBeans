@@ -1,18 +1,18 @@
 package com.portfolio.portfolio_management.services;
 
-import com.portfolio.portfolio_management.entity.Investment;
-
+import com.portfolio.portfolio_management.dto.InvestmentRequestDTO;
+import com.portfolio.portfolio_management.dto.InvestmentResponseDTO;
 
 import java.util.List;
 
 public interface InvestmentService {
-    List<Investment> getAllInvestments();
+    List<InvestmentResponseDTO> getAllInvestments();
 
-    Investment getInvestmentById(Long id);
+    InvestmentResponseDTO getInvestmentById(Long id);
 
-    Investment createInvestment(Long portfolioId, Investment investment);
+    InvestmentResponseDTO createInvestment(Long portfolioId, InvestmentRequestDTO request);
 
-    Investment updateInvestment(Long id, Investment investment);
+    InvestmentResponseDTO updateInvestment(Long id, InvestmentRequestDTO request);
 
     void deleteInvestment(Long id);
 

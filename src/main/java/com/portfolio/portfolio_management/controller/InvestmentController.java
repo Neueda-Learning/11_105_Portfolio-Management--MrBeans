@@ -1,6 +1,7 @@
 package com.portfolio.portfolio_management.controller;
 
-import com.portfolio.portfolio_management.entity.Investment;
+import com.portfolio.portfolio_management.dto.InvestmentRequestDTO;
+import com.portfolio.portfolio_management.dto.InvestmentResponseDTO;
 import com.portfolio.portfolio_management.services.InvestmentService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,28 +18,28 @@ public class InvestmentController {
 
     // GET ALL INVESTMENTS
     @GetMapping
-    public List<Investment> getAllInvestments() {
+    public List<InvestmentResponseDTO> getAllInvestments() {
         return investmentService.getAllInvestments();
     }
 
     // GET INVESTMENT BY ID
     @GetMapping("/{id}")
-    public Investment getInvestmentById(@PathVariable Long id) {
+    public InvestmentResponseDTO getInvestmentById(@PathVariable Long id) {
         return investmentService.getInvestmentById(id);
     }
 
     // CREATE INVESTMENT
     @PostMapping("/portfolio/{portfolioId}")
-    public Investment createInvestment(@PathVariable Long portfolioId,
-                                       @RequestBody Investment investment) {
-        return investmentService.createInvestment(portfolioId, investment);
+    public InvestmentResponseDTO createInvestment(@PathVariable Long portfolioId,
+                                                  @RequestBody InvestmentRequestDTO request) {
+        return investmentService.createInvestment(portfolioId, request);
     }
 
     // UPDATE INVESTMENT
     @PutMapping("/{id}")
-    public Investment updateInvestment(@PathVariable Long id,
-                                       @RequestBody Investment investment) {
-        return investmentService.updateInvestment(id, investment);
+    public InvestmentResponseDTO updateInvestment(@PathVariable Long id,
+                                                  @RequestBody InvestmentRequestDTO request) {
+        return investmentService.updateInvestment(id, request);
     }
 
     // DELETE INVESTMENT
