@@ -1,0 +1,5 @@
+# Production specific configuration
+spring:
+  config:
+    activate:
+      on-profile: prod
