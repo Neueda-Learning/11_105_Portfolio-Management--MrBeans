@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:3306/portfolio_manager
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/${DB_NAME:portfolio_manager}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:n3u3da!}
   jpa:
     hibernate.ddl-auto: validate   # schema changes ONLY via Flyway, never auto-generated
   flyway:
@@ -15,8 +15,8 @@ portfolio:
   chatbot:
     provider: ${CHATBOT_PROVIDER:groq}   # groq | gemini
     groq:
-      api-key: ${GROQ_API_KEY}
+      api-key: ${GROQ_API_KEY:dummy_groq_key}
       model: ${GROQ_MODEL:llama-3.3-70b-versatile}
     gemini:
-      api-key: ${GEMINI_API_KEY}
+      api-key: ${GEMINI_API_KEY:dummy_gemini_key}
       model: ${GEMINI_MODEL:gemini-2.0-flash}
