@@ -12,7 +12,7 @@
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>backend</name>
-    <description>Portfolio Manager Backend</description>
+    <description>Finora Backend</description>
     <properties>
         <java.version>21</java.version>
     </properties>

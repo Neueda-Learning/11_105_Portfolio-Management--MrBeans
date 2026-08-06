@@ -1,6 +1,6 @@
 # API Testing Guide
 
-This document outlines scenarios for manually testing the Portfolio Manager backend endpoints using [Swagger UI](http://localhost:8080/swagger-ui.html) or an HTTP client like Postman or cURL.
+This document outlines scenarios for manually testing the Finora backend endpoints using [Swagger UI](http://localhost:8080/swagger-ui.html) or an HTTP client like Postman or cURL.
 
 ---
 

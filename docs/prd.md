@@ -1,4 +1,4 @@
-# Portfolio Manager — Product & Technical Requirements Document (PRD)
+# Finora — Product & Technical Requirements Document (PRD)
 
 Version 1.1 · Single source of truth for how the codebase, repo, and infrastructure are structured. Anyone (or any AI coding agent) should be able to read this and know exactly where a given piece of logic lives, what to name it, and how it connects to everything else.
 

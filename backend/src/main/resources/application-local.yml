@@ -3,3 +3,7 @@ spring:
   config:
     activate:
       on-profile: local
+
+portfolio:
+  price-feed:
+    provider: fake

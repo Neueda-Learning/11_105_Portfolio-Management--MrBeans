@@ -57,8 +57,17 @@ public class YahooFinancePriceFeedClient implements PriceFeedClient {
             }
             return results;
         } catch (IOException e) {
+            if (isRateLimited(e)) {
+                log.warn("Yahoo Finance price API rate-limited (HTTP 429). Skipping this cycle.");
+                return Map.of();
+            }
             log.error("Failed to fetch batch prices from Yahoo Finance API", e);
             throw new RuntimeException("Yahoo Finance API request failed", e);
         }
+    }
+
+    private boolean isRateLimited(IOException e) {
+        String msg = e.getMessage();
+        return msg != null && msg.contains("HTTP response code: 429");
     }
 }

@@ -13,7 +13,7 @@ export const Sidebar = () => {
   return (
     <aside className="w-64 bg-card text-text-body min-h-screen flex flex-col fixed left-0 top-0">
             <div className="p-6">
-                <h1 className="text-2xl font-bold tracking-tight text-text-heading">PoMa</h1>
+                                <h1 className="text-2xl font-bold tracking-tight text-text-heading">Finora</h1>
             </div>
             
             <nav className="flex-1 px-4 space-y-2 mt-4">
@@ -36,7 +36,7 @@ export const Sidebar = () => {
             </nav>
 
             <div className="p-6 text-xs text-text-muted">
-                &copy; {new Date().getFullYear()} Portfolio Manager
+                &copy; {new Date().getFullYear()} Finora
             </div>
         </aside>);
 

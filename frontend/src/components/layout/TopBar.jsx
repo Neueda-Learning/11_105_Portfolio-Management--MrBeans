@@ -9,7 +9,7 @@ export const TopBar = () => {
     if (location.pathname.startsWith('/investments')) return 'Investments';
     if (location.pathname.startsWith('/history')) return 'Transaction History';
     if (location.pathname.startsWith('/settings')) return 'Settings';
-    return 'Portfolio Manager';
+    return 'Finora';
   };
 
   return (

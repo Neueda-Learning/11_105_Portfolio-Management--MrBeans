@@ -25,7 +25,7 @@ export const ChatbotWidget = () => {
                     <div className="bg-accent-pink text-text-onFill p-4 flex justify-between items-center">
                         <div className="flex items-center">
                             <MessageCircle className="w-5 h-5 mr-2" />
-                            <h3 className="font-medium text-sm">PoMa Assistant</h3>
+                            <h3 className="font-medium text-sm">Finora Assistant</h3>
                         </div>
                         <button
             onClick={() => setIsOpen(false)}

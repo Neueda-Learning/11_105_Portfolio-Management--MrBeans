@@ -12,6 +12,6 @@ export const useSettingsStore = create()(
       baseCurrency: 'USD',
       setBaseCurrency: (currency) => set({ baseCurrency: currency })
     }),
-    { name: 'poma-settings' }
+    { name: 'finora-settings' }
   )
 );

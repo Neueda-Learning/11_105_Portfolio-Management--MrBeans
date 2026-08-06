@@ -6,14 +6,58 @@ import { InvestmentType } from '../../types/enums';
 import { Plus, ChevronRight, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const DEFAULT_CURRENCY_OPTIONS = ['EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
+
 export const InvestmentListPage = () => {
   const { investments, isLoading, error, createInvestment, deleteInvestment } = useInvestments();
   const [filterType, setFilterType] = useState('ALL');
+    const [filterCurrency, setFilterCurrency] = useState('ALL');
+    const [fromDate, setFromDate] = useState('');
+    const [toDate, setToDate] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const filteredInvestments = filterType === 'ALL' ?
-  investments :
-  investments.filter((inv) => inv.type === filterType);
+    const currencyOptions = [...new Set([
+    ...DEFAULT_CURRENCY_OPTIONS,
+    ...investments.map((inv) => inv.currency).filter(Boolean)
+    ])].sort();
+
+    const filteredInvestments = investments.filter((inv) => {
+        const typeMatch = filterType === 'ALL' || inv.type === filterType;
+        const currencyMatch = filterCurrency === 'ALL' || inv.currency === filterCurrency;
+
+        if (!typeMatch || !currencyMatch) {
+            return false;
+        }
+
+        if (!fromDate && !toDate) {
+            return true;
+        }
+
+        if (!inv.createdAt) {
+            return false;
+        }
+
+        const createdDate = new Date(inv.createdAt);
+        const start = fromDate ? new Date(`${fromDate}T00:00:00`) : null;
+        const end = toDate ? new Date(`${toDate}T23:59:59`) : null;
+
+        if (start && createdDate < start) {
+            return false;
+        }
+
+        if (end && createdDate > end) {
+            return false;
+        }
+
+        return true;
+    });
+
+    const clearFilters = () => {
+        setFilterType('ALL');
+        setFilterCurrency('ALL');
+        setFromDate('');
+        setToDate('');
+    };
 
   if (isLoading) {
     return <div className="text-neutral-500 animate-pulse flex justify-center p-12">Loading investments...</div>;
@@ -26,7 +70,17 @@ export const InvestmentListPage = () => {
   return (
     <div className="animate-in fade-in duration-500">
             <div className="flex justify-between items-center mb-6">
-                <InvestmentFilters filterType={filterType} onFilterChange={setFilterType} />
+                <InvestmentFilters
+            filterType={filterType}
+            onTypeChange={setFilterType}
+            filterCurrency={filterCurrency}
+            onCurrencyChange={setFilterCurrency}
+            fromDate={fromDate}
+            toDate={toDate}
+            onFromDateChange={setFromDate}
+            onToDateChange={setToDate}
+            currencyOptions={currencyOptions}
+            onClearFilters={clearFilters} />
                 <button
           onClick={() => setIsModalOpen(true)}
           className="flex items-center px-5 py-3 bg-accent-pink text-white text-[15px] font-semibold rounded-md hover:bg-accent-pink-strong transition-colors">

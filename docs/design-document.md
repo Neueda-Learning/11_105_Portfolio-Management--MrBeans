@@ -1,3 +1,3 @@
-# Portfolio Manager — Design Document
+# Finora — Design Document
 
 > Placeholder — to be populated with architecture, data model, and business logic details.

@@ -1,4 +1,4 @@
-# Local Database Setup (MySQL) - Portfolio Manager
+# Local Database Setup (MySQL) - Finora
 
 This guide documents the exact steps to run the backend locally with a local MySQL database (without Docker).
 
