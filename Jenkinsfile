@@ -8,8 +8,6 @@ pipeline {
 	}
 
 	environment {
-		BACKEND_IMAGE_NAME = 'YOUR_DOCKERHUB_USERNAME/finora-backend'
-		FRONTEND_IMAGE_NAME = 'YOUR_DOCKERHUB_USERNAME/finora-frontend'
 		DOCKER_BUILDKIT = '1'
 		COMPOSE_DOCKER_CLI_BUILD = '1'
 	}
@@ -32,6 +30,11 @@ pipeline {
 						mvn -B clean verify
 				'''
 			}
+			post {
+				always {
+					junit allowEmptyResults: true, testResults: 'backend/target/surefire-reports/*.xml'
+				}
+			}
 		}
 
 		stage('Frontend Build & Test') {
@@ -48,38 +51,15 @@ pipeline {
 
 		stage('Build Docker Images') {
 			steps {
-				script {
-					env.SHORT_SHA = sh(script: 'git rev-parse --short=12 HEAD', returnStdout: true).trim()
-					env.BACKEND_IMAGE_SHA = "${BACKEND_IMAGE_NAME}:${SHORT_SHA}"
-					env.FRONTEND_IMAGE_SHA = "${FRONTEND_IMAGE_NAME}:${SHORT_SHA}"
-					env.BACKEND_IMAGE_LATEST = "${BACKEND_IMAGE_NAME}:latest"
-					env.FRONTEND_IMAGE_LATEST = "${FRONTEND_IMAGE_NAME}:latest"
-				}
+				sh '''
+					if command -v docker-compose >/dev/null 2>&1; then
+						DC="docker-compose"
+					else
+						DC="docker compose"
+					fi
 
-				sh 'docker build -t ${BACKEND_IMAGE_SHA} -t ${BACKEND_IMAGE_LATEST} ./backend'
-				sh 'docker build -t ${FRONTEND_IMAGE_SHA} -t ${FRONTEND_IMAGE_LATEST} ./frontend'
-			}
-		}
-
-		stage('Push Docker Images') {
-			when {
-				branch 'main'
-			}
-			steps {
-				withCredentials([
-					usernamePassword(
-						credentialsId: 'dockerhub-credentials',
-						usernameVariable: 'DOCKERHUB_USERNAME',
-						passwordVariable: 'DOCKERHUB_TOKEN'
-					)
-				]) {
-					sh 'echo "${DOCKERHUB_TOKEN}" | docker login -u "${DOCKERHUB_USERNAME}" --password-stdin'
-					sh 'docker push ${BACKEND_IMAGE_SHA}'
-					sh 'docker push ${FRONTEND_IMAGE_SHA}'
-					sh 'docker push ${BACKEND_IMAGE_LATEST}'
-					sh 'docker push ${FRONTEND_IMAGE_LATEST}'
-					sh 'docker logout || true'
-				}
+					$DC build
+				'''
 			}
 		}
 
@@ -88,32 +68,35 @@ pipeline {
 				branch 'main'
 			}
 			steps {
-				withCredentials([
-					string(credentialsId: 'groq-api-key', variable: 'GROQ_API_KEY')
-				]) {
-					sh '''
-						cat > .env <<EOF
-DB_USER=root
-DB_PASSWORD=root
-DB_ROOT_PASSWORD=root
-CHATBOT_PROVIDER=groq
-GROQ_API_KEY=${GROQ_API_KEY}
-GROQ_MODEL=llama-3.3-70b-versatile
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-2.0-flash
-BACKEND_IMAGE=${BACKEND_IMAGE_SHA}
-FRONTEND_IMAGE=${FRONTEND_IMAGE_SHA}
-EOF
-					'''
+				sh '''
+					if command -v docker-compose >/dev/null 2>&1; then
+						DC="docker-compose"
+					else
+						DC="docker compose"
+					fi
 
-					sh 'docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml pull backend frontend mysql'
-					sh 'docker compose --env-file .env -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans'
-				}
+					$DC up -d --build --remove-orphans
+				'''
+			}
+		}
+
+		stage('Post-Deploy Smoke Test') {
+			when {
+				branch 'main'
+			}
+			steps {
+				sh 'curl -fsS http://localhost:8080/api/investments > /dev/null'
 			}
 		}
 	}
 
 	post {
+		success {
+			echo 'Pipeline completed successfully.'
+		}
+		failure {
+			echo 'Pipeline failed. Check stage logs for details.'
+		}
 		always {
 			sh 'docker image prune -f || true'
 			deleteDir()
