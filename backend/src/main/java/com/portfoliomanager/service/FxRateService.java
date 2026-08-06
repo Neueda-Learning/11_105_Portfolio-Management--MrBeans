@@ -78,20 +78,8 @@ public class FxRateService {
         if (cross.isPresent()) return cross;
 
         // 4. Most-recent (any date), same cascade
-        Optional<BigDecimal> recentDirect = fxRateRepository
-                .findMostRecentByFromCurrencyAndToCurrency(fromCurrency, toCurrency)
-                .map(FxRate::getRate);
-        if (recentDirect.isPresent()) return recentDirect;
-
-        Optional<BigDecimal> recentInverse = fxRateRepository
-                .findMostRecentByFromCurrencyAndToCurrency(toCurrency, fromCurrency)
-                .map(FxRate::getRate)
-                .filter(r -> r.compareTo(BigDecimal.ZERO) > 0)
-                .map(r -> BigDecimal.ONE.divide(r, 8, RoundingMode.HALF_UP));
-        if (recentInverse.isPresent()) return recentInverse;
-
-        Optional<BigDecimal> recentCross = crossRateMostRecent(fromCurrency, toCurrency);
-        if (recentCross.isPresent()) return recentCross;
+        Optional<BigDecimal> recent = getLatestRate(fromCurrency, toCurrency);
+        if (recent.isPresent()) return recent;
 
         // 5. On-demand live fetch
         BigDecimal live = fetchLiveRate(fromCurrency, toCurrency);
@@ -101,6 +89,49 @@ public class FxRateService {
         }
 
         log.warn("No FX rate found for {}->{} on {}. Using 1.0 as fallback.", fromCurrency, toCurrency, date);
+        return Optional.empty();
+    }
+
+    /**
+     * Returns the most-recently stored FX rate for FROM → TO (any date).
+     * Ideal for trend calculations where per-date granularity is unnecessary
+     * and calling the live API per date would cause rate-limiting.
+     *
+     * Resolution: direct → inverse → cross-rate via USD pivot.
+     * Falls back to a single on-demand live fetch if nothing is stored.
+     */
+    @Transactional
+    public Optional<BigDecimal> getLatestRate(String fromCurrency, String toCurrency) {
+        if (fromCurrency.equalsIgnoreCase(toCurrency)) {
+            return Optional.of(BigDecimal.ONE);
+        }
+
+        // Direct
+        Optional<BigDecimal> recentDirect = fxRateRepository
+                .findMostRecentByFromCurrencyAndToCurrency(fromCurrency, toCurrency)
+                .map(FxRate::getRate);
+        if (recentDirect.isPresent()) return recentDirect;
+
+        // Inverse
+        Optional<BigDecimal> recentInverse = fxRateRepository
+                .findMostRecentByFromCurrencyAndToCurrency(toCurrency, fromCurrency)
+                .map(FxRate::getRate)
+                .filter(r -> r.compareTo(BigDecimal.ZERO) > 0)
+                .map(r -> BigDecimal.ONE.divide(r, 8, RoundingMode.HALF_UP));
+        if (recentInverse.isPresent()) return recentInverse;
+
+        // Cross-rate
+        Optional<BigDecimal> recentCross = crossRateMostRecent(fromCurrency, toCurrency);
+        if (recentCross.isPresent()) return recentCross;
+
+        // Single on-demand live fetch (one API call, not per-date)
+        BigDecimal live = fetchLiveRate(fromCurrency, toCurrency);
+        if (live != null) {
+            saveOrUpdateRate(fromCurrency, toCurrency, LocalDate.now(), live);
+            return Optional.of(live);
+        }
+
+        log.warn("No FX rate found for {}->{}. Using 1.0 as fallback.", fromCurrency, toCurrency);
         return Optional.empty();
     }
 
@@ -119,7 +150,8 @@ public class FxRateService {
         log.info("Starting FX rate refresh cycle");
         LocalDate today = LocalDate.now();
 
-        // Collect all currencies we care about
+        // Collect all currencies we care about:
+        // ALL supported home currencies + all investment currencies
         Set<String> allCurrencies = new HashSet<>(SUPPORTED_HOME_CURRENCIES);
         investmentRepository.findAll().stream()
                 .map(Investment::getCurrency)
@@ -127,6 +159,8 @@ public class FxRateService {
                 .forEach(allCurrencies::add);
 
         // Build Yahoo Finance pairs: CURRENCY→USD  (e.g. "JPYUSD=X", "EURUSD=X")
+        // This ensures we have rates for every supported home currency,
+        // not just the currencies of current investments.
         List<String> pairs = allCurrencies.stream()
                 .filter(c -> !c.equalsIgnoreCase(PIVOT))
                 .map(c -> c + PIVOT + "=X")
@@ -145,6 +179,7 @@ public class FxRateService {
             return;
         }
 
+        int stored = 0;
         for (String currency : allCurrencies) {
             if (currency.equalsIgnoreCase(PIVOT)) continue;
             String pair = currency + PIVOT + "=X";
@@ -161,11 +196,12 @@ public class FxRateService {
                     BigDecimal inv = BigDecimal.ONE.divide(cr.rate(), 8, RoundingMode.HALF_UP);
                     saveOrUpdateRate(PIVOT, currency, today, inv);
                 }
+                stored++;
             } catch (Exception e) {
                 log.error("Failed to process FX rate for pair {}", pair, e);
             }
         }
-        log.info("FX rate refresh complete");
+        log.info("FX rate refresh complete — stored {} currency pairs", stored);
     }
 
     // ────────────────────────────────────────────────────────────────────────

@@ -60,6 +60,7 @@ export const SettingsPage = () => {
                             <option value="JPY">JPY - Japanese Yen</option>
                             <option value="CAD">CAD - Canadian Dollar</option>
                             <option value="AUD">AUD - Australian Dollar</option>
+                            <option value="INR">INR - Indian Rupee</option>
                         </select>
                     </div>
 

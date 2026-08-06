@@ -15,8 +15,13 @@ public class FakeFxRateClient implements FxRateClient {
     private final Map<String, CurrentRate> hardcodedRates = new HashMap<>();
 
     public FakeFxRateClient() {
-        hardcodedRates.put("USDINR=X", new CurrentRate(new BigDecimal("83.50000000")));
-        hardcodedRates.put("EURINR=X", new CurrentRate(new BigDecimal("90.10000000")));
+        // Hardcoded rates: CURRENCY to USD
+        hardcodedRates.put("EURUSD=X", new CurrentRate(new BigDecimal("1.09000000")));
+        hardcodedRates.put("GBPUSD=X", new CurrentRate(new BigDecimal("1.27000000")));
+        hardcodedRates.put("JPYUSD=X", new CurrentRate(new BigDecimal("0.00645000")));
+        hardcodedRates.put("CADUSD=X", new CurrentRate(new BigDecimal("0.73000000")));
+        hardcodedRates.put("AUDUSD=X", new CurrentRate(new BigDecimal("0.65000000")));
+        hardcodedRates.put("INRUSD=X", new CurrentRate(new BigDecimal("0.01197600")));
     }
 
     @Override
