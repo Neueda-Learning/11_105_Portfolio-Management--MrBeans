@@ -29,4 +29,41 @@ describe('Dashboard API', () => {
     expect(result).toHaveProperty('totalUnrealisedPnl', 40000);
     expect(result.totalPnl).toBeUndefined(); // Must not exist
   });
+
+  it('getFilteredTrend() should call the dedicated filtered trend API with query params', async () => {
+    const mockTrend = [
+      { date: '2026-01-01', portfolioValue: 1000 },
+      { date: '2026-01-02', portfolioValue: 1100 }
+    ];
+
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockTrend
+    });
+
+    const result = await dashboardApi.getFilteredTrend({
+      fromDate: '2026-01-01',
+      toDate: '2026-01-02',
+      types: ['STOCK', 'BOND']
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/dashboard/trend/filter?'),
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('fromDate=2026-01-01'),
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('toDate=2026-01-02'),
+      expect.any(Object)
+    );
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('types=STOCK%2CBOND'),
+      expect.any(Object)
+    );
+    expect(result).toEqual(mockTrend);
+  });
 });
