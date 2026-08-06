@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { usePortfolioSummary } from '../Dashboard/hooks/usePortfolioSummary';
+import { useSettingsStore } from '../../store/useSettingsStore';
 import { ANALOGIES, fmtAnalogy } from './analogiesData';
 
 const fmt = fmtAnalogy;
 
 /* ── Sub-components ─────────────────────────────────────────────────────── */
 
-const HeroStat = ({ profit }) => {
+const HeroStat = ({ profit, baseCurrency }) => {
   const best = [...ANALOGIES].reverse().find((a) => profit >= a.value);
   const next = ANALOGIES.find((a) => profit < a.value);
   const pct  = next ? Math.min(100, (profit / next.value) * 100) : 100;
@@ -16,7 +17,7 @@ const HeroStat = ({ profit }) => {
       <div className="rounded-2xl bg-page px-8 py-6">
         <p className="text-sm font-semibold text-text-muted uppercase tracking-widest mb-1">Your Total Profit</p>
         <p className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-accent-pink to-[#3b82f6]">
-          {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(profit)}
+          {profit >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { style: 'currency', currency: baseCurrency, maximumFractionDigits: 0 }).format(profit)}
         </p>
 
         {best && (
@@ -30,7 +31,7 @@ const HeroStat = ({ profit }) => {
         {next && (
           <div className="mt-4">
             <div className="flex justify-between text-xs text-text-muted mb-1">
-              <span>Progress to next: {next.emoji} {next.name} ({fmt(next.value)})</span>
+              <span>Progress to next: {next.emoji} {next.name} ({fmt(next.value, baseCurrency)})</span>
               <span>{pct.toFixed(1)}%</span>
             </div>
             <div className="w-full h-2.5 rounded-full bg-neutral-200 overflow-hidden">
@@ -46,7 +47,7 @@ const HeroStat = ({ profit }) => {
   );
 };
 
-const AnalogyCard = ({ analogy, profit, index }) => {
+const AnalogyCard = ({ analogy, profit, index, baseCurrency }) => {
   const unlocked = profit >= analogy.value;
   const isNext   = !unlocked && profit < analogy.value && ANALOGIES.find((a) => profit < a.value) === analogy;
   const count    = unlocked ? Math.floor(profit / analogy.value) : 0;
@@ -95,7 +96,7 @@ const AnalogyCard = ({ analogy, profit, index }) => {
 
       {/* Price */}
       <p className={`text-lg font-extrabold ${analogy.color === 'pink' ? 'text-accent-pink-strong' : 'text-[#2563eb]'}`}>
-        {fmt(analogy.value)}
+        {fmt(analogy.value, baseCurrency)}
       </p>
 
       {/* Count */}
@@ -115,7 +116,7 @@ const AnalogyCard = ({ analogy, profit, index }) => {
             />
           </div>
           <p className="text-xs text-text-muted mt-1">
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(analogy.value - profit)} more to go
+            {new Intl.NumberFormat('en-US', { style: 'currency', currency: baseCurrency, maximumFractionDigits: 0 }).format(analogy.value - profit)} more to go
           </p>
         </div>
       )}
@@ -126,6 +127,7 @@ const AnalogyCard = ({ analogy, profit, index }) => {
 /* ── Page ────────────────────────────────────────────────────────────────── */
 
 export const AnalogiesPage = () => {
+  const baseCurrency = useSettingsStore((s) => s.baseCurrency) || 'USD';
   const { summary, isLoading } = usePortfolioSummary();
 
   const profit = useMemo(() => {
@@ -142,7 +144,7 @@ export const AnalogiesPage = () => {
   return (
     <div className="animate-in fade-in duration-500 max-w-5xl mx-auto">
       {/* Hero stat */}
-      <HeroStat profit={profit} />
+      <HeroStat profit={profit} baseCurrency={baseCurrency} />
 
       {/* Progress summary */}
       <div className="flex items-center gap-3 mb-6">
@@ -156,13 +158,13 @@ export const AnalogiesPage = () => {
       {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {ANALOGIES.map((analogy, i) => (
-          <AnalogyCard key={analogy.name} analogy={analogy} profit={profit} index={i} />
+          <AnalogyCard key={analogy.name} analogy={analogy} profit={profit} index={i} baseCurrency={baseCurrency} />
         ))}
       </div>
 
       <p className="text-center text-xs text-text-muted mt-8">
-        Based on your combined unrealised + realised profit in your base currency.
-        Prices are illustrative USD approximations.
+        Based on your combined unrealised + realised profit in your base currency ({baseCurrency}).
+        Prices are illustrative approximations.
       </p>
     </div>
   );

@@ -51,7 +51,7 @@ public class DashboardService {
     }
 
     @Cacheable(value = "dashboard-summary", key = "#homeCurrency")
-    @Transactional(readOnly = true)
+    @Transactional
     public DashboardSummaryResponse getSummary(String homeCurrency) {
         BigDecimal totalCost = BigDecimal.ZERO;
         BigDecimal totalRealised = BigDecimal.ZERO;
@@ -86,7 +86,7 @@ public class DashboardService {
     }
 
     @Cacheable(value = "dashboard-allocation", key = "#homeCurrency")
-    @Transactional(readOnly = true)
+    @Transactional
     public List<AllocationResponse> getAllocation(String homeCurrency) {
         Map<InvestmentType, BigDecimal> valueByType = new EnumMap<>(InvestmentType.class);
         BigDecimal totalPortfolioValue = BigDecimal.ZERO;
@@ -116,12 +116,12 @@ public class DashboardService {
         return allocations;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<TrendResponse> getTrend(String homeCurrency, int days) {
         return getTrendFiltered(homeCurrency, null, null, null, days);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<TrendResponse> getTrendFiltered(String homeCurrency,
                                                 LocalDate fromDate,
                                                 LocalDate toDate,
@@ -173,6 +173,16 @@ public class DashboardService {
             txMap.put(inv.getId(), transactionRepository.findByInvestmentIdOrderByTxnDateAsc(inv.getId()));
         }
 
+        // Pre-fetch a single FX rate per investment (most-recent stored rate).
+        // FX rates don't change meaningfully day-to-day within a 30-day trend window,
+        // and fetching per-date would trigger N×M Yahoo Finance API calls causing
+        // rate-limiting (HTTP 429) and 72+ second response times.
+        Map<UUID, BigDecimal> fxMap = new HashMap<>();
+        for (Investment inv : investments) {
+            BigDecimal fx = fxRateService.getLatestRate(inv.getCurrency(), homeCurrency).orElse(BigDecimal.ONE);
+            fxMap.put(inv.getId(), fx);
+        }
+
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             LocalDate evaluationDate = date;
             BigDecimal dailyMarketValue = BigDecimal.ZERO;
@@ -186,7 +196,7 @@ public class DashboardService {
 
                 CostBasisResult cb = CostBasisCalculator.calculate(historicalTxns);
                 BigDecimal price = getLatestPriceBeforeDate(inv.getId(), evaluationDate);
-                BigDecimal fx = fxRateService.getRate(inv.getCurrency(), homeCurrency, evaluationDate).orElse(BigDecimal.ONE);
+                BigDecimal fx = fxMap.get(inv.getId());
 
                 PnlResult pnl = PnlCalculator.calculate(cb, price, fx);
                 dailyMarketValue = dailyMarketValue.add(pnl.totalCostBasis().add(pnl.unrealisedPnl()));
@@ -199,7 +209,7 @@ public class DashboardService {
         return trend;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public com.portfoliomanager.dto.pnl.InvestmentPnlResponse getInvestmentPnl(java.util.UUID investmentId, String homeCurrency) {
         Investment inv = investmentRepository.findById(investmentId)
                 .orElseThrow(() -> new com.portfoliomanager.exception.ResourceNotFoundException("Investment not found: " + investmentId));
@@ -214,7 +224,7 @@ public class DashboardService {
         return res;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Cacheable(value = "dashboard-performance", key = "#homeCurrency")
     public List<com.portfoliomanager.dto.dashboard.PerformanceResponse> getPerformance(String homeCurrency) {
         List<Investment> investments = investmentRepository.findAll();

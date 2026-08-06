@@ -21,10 +21,25 @@ export const ANALOGIES = [
   { value: 1_000_000, emoji: '🏝️', name: 'Private Island',    desc: 'Your own Caribbean island' },
 ];
 
-/** Format dollar value as $5 / $1K / $1.5M */
-export const fmtAnalogy = (n) =>
-  n >= 1_000_000
-    ? `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
-    : n >= 1_000
-    ? `$${Math.round(n / 1_000)}K`
-    : `$${n}`;
+/** Format value using proper currency symbols */
+export const fmtAnalogy = (n, currencyCode = 'USD') => {
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currencyCode,
+    maximumFractionDigits: 0
+  });
+  
+  if (n >= 1_000_000) {
+    const val = (n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1);
+    const parts = formatter.formatToParts(n / 1_000_000);
+    const symbol = parts.find(p => p.type === 'currency')?.value || '$';
+    return `${symbol}${val}M`;
+  }
+  if (n >= 1_000) {
+    const val = Math.round(n / 1_000);
+    const parts = formatter.formatToParts(val);
+    const symbol = parts.find(p => p.type === 'currency')?.value || '$';
+    return `${symbol}${val}K`;
+  }
+  return formatter.format(n);
+};

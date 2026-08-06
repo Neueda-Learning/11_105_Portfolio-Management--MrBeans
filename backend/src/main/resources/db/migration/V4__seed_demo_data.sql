@@ -6,7 +6,15 @@
 -- All amounts in USD (home currency = USD, FX = 1:1)
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 1. Remove invalid test transactions
+-- 1. Ensure demo investments exist (idempotent via IGNORE)
+-- ─────────────────────────────────────────────────────────────────────────────
+INSERT IGNORE INTO investments (id, symbol, name, type, currency) VALUES
+  ('053160d3-333a-4fd8-9709-bf0c99039d2c', 'EZRA',    'Ezra Holdings',   'STOCK', 'USD'),
+  ('789d06b5-ceb1-4a67-b477-72090a995452', 'TETH',    'Ether ETF Trust', 'OTHER', 'USD'),
+  ('f6933801-5059-4591-a30e-b2073221ce56', 'BTC-USD', 'Bitcoin USD',     'STOCK', 'USD');
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 2. Remove invalid test transactions (if any exist from prior runs)
 -- ─────────────────────────────────────────────────────────────────────────────
 DELETE FROM transactions
 WHERE id IN (

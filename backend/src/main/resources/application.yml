@@ -10,7 +10,7 @@ spring:
 portfolio:
   home-currency-default: INR
   price-feed:
-    provider: yahoo-finance        # no API key required
+    provider: ${PRICE_FEED_PROVIDER:yahoo-finance}
     update-frequency-ms: 1800000   # 30 minutes
   chatbot:
     provider: ${CHATBOT_PROVIDER:groq}   # groq | gemini
