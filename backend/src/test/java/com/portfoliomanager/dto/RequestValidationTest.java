@@ -216,13 +216,15 @@ class RequestValidationTest {
         assertEquals(new BigDecimal("12.00"), allocation.getTotalValue());
         assertEquals(new BigDecimal("60.00"), allocation.getPercentage());
 
-        TrendResponse trend = new TrendResponse(LocalDate.now(), new BigDecimal("100.00"));
+        TrendResponse trend = new TrendResponse(LocalDate.now(), new BigDecimal("100.00"), new BigDecimal("80.00"));
         LocalDate date = LocalDate.now().minusDays(1);
         trend.setDate(date);
         trend.setPortfolioValue(new BigDecimal("101.00"));
+        trend.setInvestedAmount(new BigDecimal("79.50"));
 
         assertEquals(date, trend.getDate());
         assertEquals(new BigDecimal("101.00"), trend.getPortfolioValue());
+        assertEquals(new BigDecimal("79.50"), trend.getInvestedAmount());
     }
 
     private static Set<String> fieldsWithViolations(Set<? extends ConstraintViolation<?>> violations) {
