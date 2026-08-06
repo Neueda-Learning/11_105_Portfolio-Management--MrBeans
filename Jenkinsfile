@@ -25,14 +25,12 @@ pipeline {
 					docker run --rm \
 						--user "$(id -u):$(id -g)" \
 						--group-add "$(stat -c '%g' /var/run/docker.sock)" \
-						-e HOME=/tmp \
-						-e MAVEN_CONFIG=/tmp/.m2 \
+						-e HOME=/app \
 						-v "$WORKSPACE/backend:/app" \
-						-v "$WORKSPACE/.m2:/tmp/.m2" \
 						-v /var/run/docker.sock:/var/run/docker.sock \
 						-w /app \
 						maven:3.9-eclipse-temurin-21 \
-						sh -lc "mkdir -p /tmp/.m2 && mvn -B clean verify"
+						sh -lc "mkdir -p /app/.m2/repository && mvn -B -Dmaven.repo.local=/app/.m2/repository clean verify"
 				'''
 			}
 			post {
