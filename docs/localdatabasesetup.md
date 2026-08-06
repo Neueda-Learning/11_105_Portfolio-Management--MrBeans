@@ -58,3 +58,24 @@ Re-run the SQL user setup and ensure username/password in environment variables 
 - `DB_PASSWORD=pm_password`
 
 Also confirm MySQL server is running and reachable on `localhost:3306`.
+
+## 7) Seed Large Demo Data (Optional)
+
+If you want the dashboard charts to look realistic quickly, seed synthetic data from the local profile endpoint:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/dev/seed?investments=28&transactionsPerInvestment=40&snapshotDays=220&wipeExistingData=true"
+```
+
+This creates:
+
+- 28 investments
+- 1,120 transactions
+- 6,160 historical price snapshots
+
+You can tune query params as needed:
+
+- `investments` range: 1 to 200
+- `transactionsPerInvestment` range: 2 to 500
+- `snapshotDays` range: 30 to 730
+- `wipeExistingData=true` clears old investments, transactions, and snapshots before seeding
