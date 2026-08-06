@@ -11,7 +11,11 @@ public interface InvestmentRepository {
 
 	Optional<Investment> findById(UUID id);
 
+	boolean existsById(UUID id);
+
 	Investment save(Investment investment);
 
 	void delete(Investment investment);
+
+	void deleteAllInBatch();
 }

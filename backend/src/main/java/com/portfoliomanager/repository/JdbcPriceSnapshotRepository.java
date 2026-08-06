@@ -55,6 +55,16 @@ public class JdbcPriceSnapshotRepository implements PriceSnapshotRepository {
         return jdbcTemplate.query(sql, rowMapper, investmentId.toString());
     }
 
+    @Override
+    public void deleteAllInBatch() {
+        jdbcTemplate.update("DELETE FROM price_snapshots");
+    }
+
+    @Override
+    public void deleteByInvestmentId(UUID investmentId) {
+        jdbcTemplate.update("DELETE FROM price_snapshots WHERE investment_id = ?", investmentId.toString());
+    }
+
     private java.util.Optional<PriceSnapshot> findById(UUID id) {
         String sql = "SELECT id, investment_id, price, currency, fetched_at FROM price_snapshots WHERE id = ?";
         List<PriceSnapshot> rows = jdbcTemplate.query(sql, rowMapper, id.toString());

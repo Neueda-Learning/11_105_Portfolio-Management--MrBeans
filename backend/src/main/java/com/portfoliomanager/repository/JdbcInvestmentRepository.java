@@ -74,6 +74,12 @@ public class JdbcInvestmentRepository implements InvestmentRepository {
     }
 
     @Override
+    public boolean existsById(UUID id) {
+        Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM investments WHERE id = ?", Integer.class, id.toString());
+        return count != null && count > 0;
+    }
+
+    @Override
     public Investment save(Investment investment) {
         UUID id = investment.getId() != null ? investment.getId() : UUID.randomUUID();
         investment.setId(id);
@@ -93,6 +99,11 @@ public class JdbcInvestmentRepository implements InvestmentRepository {
             return;
         }
         jdbcTemplate.update("DELETE FROM investments WHERE id = ?", investment.getId().toString());
+    }
+
+    @Override
+    public void deleteAllInBatch() {
+        jdbcTemplate.update("DELETE FROM investments");
     }
 
     private void insertInvestment(Investment investment) {

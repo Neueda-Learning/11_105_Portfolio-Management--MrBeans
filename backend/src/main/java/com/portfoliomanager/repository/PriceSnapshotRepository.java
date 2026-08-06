@@ -8,6 +8,10 @@ import java.util.UUID;
 public interface PriceSnapshotRepository {
     PriceSnapshot save(PriceSnapshot snapshot);
 
+    void deleteAllInBatch();
+
     // Uses V1 schema index idx_price_snapshots_inv_fetched
     List<PriceSnapshot> findByInvestmentIdOrderByFetchedAtDesc(UUID investmentId);
+
+    void deleteByInvestmentId(UUID investmentId);
 }

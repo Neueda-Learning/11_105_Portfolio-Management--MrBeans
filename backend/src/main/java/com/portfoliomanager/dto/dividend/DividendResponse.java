@@ -1,64 +1,24 @@
-package com.portfoliomanager.model;
+package com.portfoliomanager.dto.dividend;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import com.portfoliomanager.model.DividendMode;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Entity
-@Table(name = "dividends")
-public class Dividend {
+public class DividendResponse {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "CHAR(36)")
-    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID id;
-
-    @Column(name = "investment_id", nullable = false, columnDefinition = "CHAR(36)")
-    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID investmentId;
-
-    @Column(precision = 20, scale = 4, nullable = false)
     private BigDecimal amount;
-
-    @Column(name = "dividend_per_share", precision = 20, scale = 8)
     private BigDecimal dividendPerShare;
-
-    @Column(length = 10, nullable = false)
     private String currency;
-
-    @Column(name = "withholding_tax", precision = 20, scale = 4, nullable = false)
-    private BigDecimal withholdingTax = BigDecimal.ZERO;
-
-    @Column(name = "reinvestment_price", precision = 20, scale = 4)
+    private BigDecimal withholdingTax;
     private BigDecimal reinvestmentPrice;
-
-    @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 50)
     private DividendMode mode;
-
-    @Column(name = "ex_date")
     private LocalDate exDate;
-
-    @Column(name = "payment_date", nullable = false)
     private LocalDate paymentDate;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
     public UUID getId() { return id; }

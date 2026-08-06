@@ -6,6 +6,7 @@ import com.portfoliomanager.dto.dashboard.DashboardSummaryResponse;
 import com.portfoliomanager.dto.dashboard.TrendResponse;
 import com.portfoliomanager.service.FxRateService;
 import com.portfoliomanager.model.Investment;
+import com.portfoliomanager.repository.DividendRepository;
 import com.portfoliomanager.repository.InvestmentRepository;
 import com.portfoliomanager.model.InvestmentType;
 import com.portfoliomanager.service.CostBasisCalculator;
@@ -33,15 +34,18 @@ public class DashboardService {
     private final TransactionRepository transactionRepository;
     private final PriceSnapshotRepository priceSnapshotRepository;
     private final FxRateService fxRateService;
+    private final DividendRepository dividendRepository;
 
     public DashboardService(InvestmentRepository investmentRepository,
                             TransactionRepository transactionRepository,
                             PriceSnapshotRepository priceSnapshotRepository,
-                            FxRateService fxRateService) {
+                            FxRateService fxRateService,
+                            DividendRepository dividendRepository) {
         this.investmentRepository = investmentRepository;
         this.transactionRepository = transactionRepository;
         this.priceSnapshotRepository = priceSnapshotRepository;
         this.fxRateService = fxRateService;
+        this.dividendRepository = dividendRepository;
     }
 
     @Transactional(readOnly = true)
@@ -66,6 +70,15 @@ public class DashboardService {
         res.setTotalUnrealisedPnl(MoneyMath.roundCurrency(totalUnrealised));
         // Total Value = Cost Basis + Unrealised Pnl
         res.setTotalValue(MoneyMath.roundCurrency(totalCost.add(totalUnrealised)));
+
+        // Dividend income this calendar year (net of withholding tax)
+        LocalDate yearStart = LocalDate.of(today.getYear(), 1, 1);
+        LocalDate yearEnd   = LocalDate.of(today.getYear(), 12, 31);
+        BigDecimal dividendIncome = dividendRepository
+                .sumNetAmountByPaymentDateBetween(yearStart, yearEnd)
+                .orElse(BigDecimal.ZERO);
+        res.setDividendIncomeThisYear(MoneyMath.roundCurrency(dividendIncome));
+
         return res;
     }
 
@@ -129,6 +142,21 @@ public class DashboardService {
             trend.add(new TrendResponse(date, MoneyMath.roundCurrency(dailyTotalValue)));
         }
         return trend;
+    }
+
+    @Transactional(readOnly = true)
+    public com.portfoliomanager.dto.pnl.InvestmentPnlResponse getInvestmentPnl(java.util.UUID investmentId, String homeCurrency) {
+        Investment inv = investmentRepository.findById(investmentId)
+                .orElseThrow(() -> new com.portfoliomanager.exception.ResourceNotFoundException("Investment not found: " + investmentId));
+        PnlResult pnl = calculateCurrentPnl(inv, homeCurrency, LocalDate.now());
+        com.portfoliomanager.dto.pnl.InvestmentPnlResponse res = new com.portfoliomanager.dto.pnl.InvestmentPnlResponse();
+        res.setRealisedPnl(MoneyMath.roundCurrency(pnl.realisedPnl()));
+        res.setUnrealisedPnl(MoneyMath.roundCurrency(pnl.unrealisedPnl()));
+        res.setRealisedPnlLocal(MoneyMath.roundCurrency(pnl.realisedPnlLocal()));
+        res.setUnrealisedPnlLocal(MoneyMath.roundCurrency(pnl.unrealisedPnlLocal()));
+        res.setTotalCostBasis(MoneyMath.roundCurrency(pnl.totalCostBasis()));
+        res.setCurrentQuantity(pnl.currentQuantity());
+        return res;
     }
 
     private PnlResult calculateCurrentPnl(Investment inv, String homeCurrency, LocalDate date) {

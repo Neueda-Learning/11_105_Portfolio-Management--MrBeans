@@ -10,6 +10,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -68,6 +69,49 @@ public class JdbcDividendRepository implements DividendRepository {
         String sql = "SELECT id, investment_id, amount, currency, mode, ex_date, payment_date, created_at "
                 + "FROM dividends WHERE investment_id = ?";
         return jdbcTemplate.query(sql, rowMapper, investmentId.toString());
+    }
+
+    @Override
+    public List<Dividend> findByInvestmentIdOrderByPaymentDateDesc(UUID investmentId) {
+        String sql = "SELECT id, investment_id, amount, currency, mode, ex_date, payment_date, created_at "
+                + "FROM dividends WHERE investment_id = ? ORDER BY payment_date DESC";
+        return jdbcTemplate.query(sql, rowMapper, investmentId.toString());
+    }
+
+    @Override
+    public Optional<Dividend> findById(UUID id) {
+        String sql = "SELECT id, investment_id, amount, currency, mode, ex_date, payment_date, created_at FROM dividends WHERE id = ?";
+        List<Dividend> rows = jdbcTemplate.query(sql, rowMapper, id.toString());
+        return rows.stream().findFirst();
+    }
+
+    @Override
+    public void delete(Dividend dividend) {
+        if (dividend.getId() == null) {
+            return;
+        }
+        jdbcTemplate.update("DELETE FROM dividends WHERE id = ?", dividend.getId().toString());
+    }
+
+    @Override
+    public void deleteByInvestmentId(UUID investmentId) {
+        jdbcTemplate.update("DELETE FROM dividends WHERE investment_id = ?", investmentId.toString());
+    }
+
+    @Override
+    public void deleteAllInBatch() {
+        jdbcTemplate.update("DELETE FROM dividends");
+    }
+
+    @Override
+    public Optional<BigDecimal> sumNetAmountByPaymentDateBetween(LocalDate start, LocalDate end) {
+        BigDecimal total = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(SUM(amount - withholding_tax), 0) FROM dividends WHERE payment_date BETWEEN ? AND ?",
+                BigDecimal.class,
+                Date.valueOf(start),
+                Date.valueOf(end)
+        );
+        return Optional.ofNullable(total);
     }
 
     private Optional<Dividend> findById(UUID id) {

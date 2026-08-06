@@ -85,10 +85,20 @@ public class JdbcTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public void deleteAllInBatch() {
+        jdbcTemplate.update("DELETE FROM transactions");
+    }
+
+    @Override
     public List<Transaction> findByInvestmentIdOrderByTxnDateAsc(UUID investmentId) {
         String sql = "SELECT id, investment_id, type, quantity, price, currency, fx_rate_to_home, txn_date, created_at "
                 + "FROM transactions WHERE investment_id = ? ORDER BY txn_date ASC";
         return jdbcTemplate.query(sql, rowMapper, investmentId.toString());
+    }
+
+    @Override
+    public void deleteByInvestmentId(UUID investmentId) {
+        jdbcTemplate.update("DELETE FROM transactions WHERE investment_id = ?", investmentId.toString());
     }
 
     private void insertTransaction(Transaction transaction) {

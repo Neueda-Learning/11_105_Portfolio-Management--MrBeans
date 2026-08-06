@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { investmentsApi } from '../../../api/investments';
 import { transactionsApi } from '../../../api/transactions';
+import { useSettingsStore } from '../../../store/useSettingsStore';
 
 
 
@@ -8,11 +9,8 @@ import { transactionsApi } from '../../../api/transactions';
 export const useInvestmentDetail = (investmentId) => {
   const [investment, setInvestment] = useState(null);
   const [transactions, setTransactions] = useState([]);
-
-  // MOCKED PnL state because backend currently does not expose a per-investment PnL endpoint.
-  // Section 4.2 strictly forbids frontend calculation over transactions, so this must remain mocked 
-  // until a backend endpoint is provided.
-  const [mockedPnl] = useState({ realisedPnl: 1250.00, unrealisedPnl: -340.50 });
+  const [pnl, setPnl] = useState({ realisedPnl: 0, unrealisedPnl: 0 });
+  const baseCurrency = useSettingsStore((s) => s.baseCurrency);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,19 +20,21 @@ export const useInvestmentDetail = (investmentId) => {
 
     setIsLoading(true);
     try {
-      const [invData, txnData] = await Promise.all([
+      const [invData, txnData, pnlData] = await Promise.all([
       investmentsApi.getById(investmentId),
-      transactionsApi.getByInvestment(investmentId)]
+      transactionsApi.getByInvestment(investmentId),
+      investmentsApi.getPnl(investmentId, baseCurrency)]
       );
       setInvestment(invData);
       setTransactions(txnData);
+      setPnl(pnlData);
       setError(null);
     } catch (err) {
       setError(err);
     } finally {
       setIsLoading(false);
     }
-  }, [investmentId]);
+  }, [investmentId, baseCurrency]);
 
   useEffect(() => {
     fetchData();
@@ -43,7 +43,7 @@ export const useInvestmentDetail = (investmentId) => {
   return {
     investment,
     transactions,
-    pnl: mockedPnl,
+    pnl,
     isLoading,
     error,
     refresh: fetchData

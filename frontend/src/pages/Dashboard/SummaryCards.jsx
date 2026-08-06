@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { TrendingUp, TrendingDown, PieChart, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, PieChart, Wallet, BadgeDollarSign } from 'lucide-react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 
 
@@ -28,7 +28,7 @@ export const SummaryCards = ({ summary }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-accent-pink text-white rounded-xl p-8">
                 <div className="flex items-center text-white/90 mb-2">
                     <Wallet className="w-6 h-6 mr-2" />
@@ -62,6 +62,17 @@ export const SummaryCards = ({ summary }) => {
                     {getPnLIcon(summary.totalUnrealisedPnl)}
                     <span data-testid="value-unrealised-pnl">{formatCurrency(summary.totalUnrealisedPnl)}</span>
                 </div>
+            </div>
+
+            <div className="bg-card rounded-xl p-8">
+                <div className="flex items-center text-text-muted mb-2">
+                    <BadgeDollarSign className="w-6 h-6 mr-2" />
+                    <h3 className="text-sm font-semibold">Dividend Income</h3>
+                </div>
+                <div className="text-4xl font-semibold text-gain">
+                    {formatCurrency(summary.dividendIncomeThisYear ?? 0)}
+                </div>
+                <div className="text-sm text-text-muted mt-2">Net received this year</div>
             </div>
         </div>);
 
