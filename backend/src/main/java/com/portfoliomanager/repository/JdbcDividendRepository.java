@@ -114,12 +114,6 @@ public class JdbcDividendRepository implements DividendRepository {
         return Optional.ofNullable(total);
     }
 
-    private Optional<Dividend> findById(UUID id) {
-        String sql = "SELECT id, investment_id, amount, currency, mode, ex_date, payment_date, created_at FROM dividends WHERE id = ?";
-        List<Dividend> rows = jdbcTemplate.query(sql, rowMapper, id.toString());
-        return rows.stream().findFirst();
-    }
-
     private void insertDividend(Dividend dividend) {
         String sql = "INSERT INTO dividends (id, investment_id, amount, currency, mode, ex_date, payment_date) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
