@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Wallet, History, Settings } from 'lucide-react';
+import { LayoutDashboard, Wallet, History, Settings, Sparkles } from 'lucide-react';
 
 export const Sidebar = () => {
   const navItems = [
   { name: 'Dashboard', path: '/', icon: <LayoutDashboard className="w-6 h-6 mr-3" /> },
   { name: 'Investments', path: '/investments', icon: <Wallet className="w-6 h-6 mr-3" /> },
   { name: 'History', path: '/history', icon: <History className="w-6 h-6 mr-3" /> },
+  { name: 'Analogies', path: '/analogies', icon: <Sparkles className="w-6 h-6 mr-3" /> },
   { name: 'Settings', path: '/settings', icon: <Settings className="w-6 h-6 mr-3" /> }];
 
 

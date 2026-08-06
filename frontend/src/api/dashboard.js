@@ -1,9 +1,14 @@
 import { apiClient } from './client';
 
-
 export const dashboardApi = {
-  getSummary: () => apiClient.fetch('/dashboard/summary'),
-  getAssetAllocation: () => apiClient.fetch('/dashboard/allocation'),
+  getSummary: (homeCurrency = 'INR') =>
+    apiClient.fetch(`/dashboard/summary?homeCurrency=${homeCurrency}`),
+  getAssetAllocation: (homeCurrency = 'INR') =>
+    apiClient.fetch(`/dashboard/allocation?homeCurrency=${homeCurrency}`),
+  getTrend: (homeCurrency = 'INR', days = 30) =>
+    apiClient.fetch(`/dashboard/trend?homeCurrency=${homeCurrency}&days=${days}`),
+  getPerformance: (homeCurrency = 'INR') =>
+    apiClient.fetch(`/dashboard/performance?homeCurrency=${homeCurrency}`),
   getFilteredTrend: ({ homeCurrency = 'INR', fromDate, toDate, types = [], days = 30 } = {}) => {
     const params = new URLSearchParams();
     params.set('homeCurrency', homeCurrency);
@@ -20,5 +25,5 @@ export const dashboardApi = {
     }
 
     return apiClient.fetch(`/dashboard/trend/filter?${params.toString()}`);
-  }
+  },
 };

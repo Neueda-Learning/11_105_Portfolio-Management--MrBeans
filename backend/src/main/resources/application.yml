@@ -16,7 +16,7 @@ portfolio:
     provider: ${CHATBOT_PROVIDER:groq}   # groq | gemini
     groq:
       api-key: ${GROQ_API_KEY:dummy_groq_key}
-      model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+      model: ${GROQ_MODEL:llama-3.1-8b-instant}
     gemini:
       api-key: ${GEMINI_API_KEY:dummy_gemini_key}
       model: ${GEMINI_MODEL:gemini-2.0-flash}

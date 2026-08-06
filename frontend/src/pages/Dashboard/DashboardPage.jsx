@@ -4,9 +4,10 @@ import { usePortfolioTrend } from './hooks/usePortfolioTrend';
 import { SummaryCards } from './SummaryCards';
 import { AllocationChart } from './AllocationChart';
 import { TrendChart } from './TrendChart';
-
 import { PerformanceScatter } from './PerformanceScatter';
 import { InvestmentType } from '../../types/enums';
+import { useSettingsStore } from '../../store/useSettingsStore';
+import { WealthSnapshot } from './WealthSnapshot';
 
 const TREND_RANGES = [
   { key: '7D', label: '7D', days: 7 },
@@ -19,7 +20,8 @@ const TREND_RANGES = [
 
 
 export const DashboardPage = () => {
-  const { summary, allocation, isLoading, error } = usePortfolioSummary();
+  const baseCurrency = useSettingsStore((s) => s.baseCurrency) || 'USD';
+  const { summary, allocation, performance, isLoading, isRefreshing, error } = usePortfolioSummary();
   const [activeRange, setActiveRange] = useState('30D');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -31,7 +33,7 @@ export const DashboardPage = () => {
 
   const trendFilters = useMemo(() => {
     const base = {
-      homeCurrency: 'INR',
+      homeCurrency: baseCurrency,
       types: selectedTypes
     };
 
@@ -58,17 +60,16 @@ export const DashboardPage = () => {
       ...base,
       days: selectedRange?.days || 30
     };
-  }, [activeRange, fromDate, toDate, selectedTypes, todayIso, yearStartIso]);
+  }, [activeRange, fromDate, toDate, selectedTypes, baseCurrency, todayIso, yearStartIso]);
 
   const { trend, isTrendLoading, trendError } = usePortfolioTrend(trendFilters);
 
-
-  const mockScatterData = [
-  { name: 'AAPL', risk: 15, return: 25 },
-  { name: 'TSLA', risk: 40, return: 45 },
-  { name: 'BND', risk: 5, return: -2 },
-  { name: 'MSFT', risk: 12, return: 18 },
-  { name: 'JNJ', risk: 8, return: -5 }];
+  // Map backend performance shape → scatter shape { name, risk, return }
+  const scatterData = performance.map((p) => ({
+    name: p.symbol,
+    risk: Number(p.riskScore),
+    return: Number(p.returnPct),
+  }));
 
   const toggleType = (type) => {
     setSelectedTypes((prev) =>
@@ -116,7 +117,15 @@ export const DashboardPage = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-            <SummaryCards summary={summary} />
+      {/* Subtle banner while re-fetching after a currency change */}
+      {isRefreshing && (
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent-pink/10 border border-accent-pink/20 text-sm text-accent-pink-strong animate-pulse">
+          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z"/></svg>
+          Updating dashboard to {baseCurrency}…
+        </div>
+      )}
+      <SummaryCards summary={summary} />
+      <WealthSnapshot summary={summary} />
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <AllocationChart data={allocation} />
@@ -239,7 +248,7 @@ export const DashboardPage = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-8">
-                <PerformanceScatter data={mockScatterData} />
+                <PerformanceScatter data={scatterData} />
             </div>
         </div>);
 

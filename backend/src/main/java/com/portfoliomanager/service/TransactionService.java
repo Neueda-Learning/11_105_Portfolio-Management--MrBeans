@@ -2,14 +2,18 @@ package com.portfoliomanager.service;
 
 import com.portfoliomanager.repository.TransactionRepository;
 import com.portfoliomanager.model.Transaction;
+import com.portfoliomanager.model.TransactionType;
+import com.portfoliomanager.dto.pnl.CostBasisResult;
 
 import com.portfoliomanager.exception.ResourceNotFoundException;
 import com.portfoliomanager.util.MoneyMath;
 import com.portfoliomanager.dto.transaction.CreateTransactionRequest;
 import com.portfoliomanager.dto.transaction.TransactionResponse;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -31,8 +35,26 @@ public class TransactionService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = {"dashboard-summary", "dashboard-allocation", "dashboard-performance", "dashboard-trend"}, allEntries = true)
     @Transactional
     public TransactionResponse createTransaction(UUID investmentId, CreateTransactionRequest request) {
+        // Prevent future-dated transactions
+        if (request.getTxnDate() != null && request.getTxnDate().isAfter(java.time.LocalDate.now())) {
+            throw new IllegalArgumentException("Transaction date cannot be in the future.");
+        }
+
+        // Validate sell: cannot sell more than current holdings
+        if (request.getType() == TransactionType.SELL || request.getType() == TransactionType.WITHDRAWAL) {
+            List<Transaction> existing = transactionRepository.findByInvestmentIdOrderByTxnDateAsc(investmentId);
+            CostBasisResult holdings = CostBasisCalculator.calculate(existing);
+            BigDecimal sellQty = request.getQuantity() != null ? request.getQuantity() : BigDecimal.ZERO;
+            if (sellQty.compareTo(holdings.totalQuantity()) > 0) {
+                throw new IllegalArgumentException(
+                    String.format("Cannot sell %.8f units — current holdings are %.8f",
+                        sellQty, holdings.totalQuantity()));
+            }
+        }
+
         Transaction transaction = new Transaction();
         transaction.setInvestmentId(investmentId);
         transaction.setType(request.getType());
@@ -46,6 +68,7 @@ public class TransactionService {
         return mapToResponse(saved);
     }
 
+    @CacheEvict(value = {"dashboard-summary", "dashboard-allocation", "dashboard-performance", "dashboard-trend"}, allEntries = true)
     @Transactional
     public void deleteTransaction(UUID id) {
         Transaction transaction = transactionRepository.findById(id)

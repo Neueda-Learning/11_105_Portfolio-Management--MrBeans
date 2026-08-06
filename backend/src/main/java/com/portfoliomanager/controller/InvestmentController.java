@@ -53,6 +53,11 @@ public class InvestmentController {
         return dashboardService.getInvestmentPnl(id, homeCurrency);
     }
 
+    @GetMapping("/{id}/current-price")
+    public java.util.Map<String, Object> getCurrentPrice(@PathVariable UUID id) {
+        return investmentService.getCurrentPrice(id);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteInvestment(@PathVariable UUID id) {

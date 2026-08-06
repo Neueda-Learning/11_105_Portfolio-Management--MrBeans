@@ -30,7 +30,7 @@ export const useInvestments = () => {
     setIsCreating(true);
     try {
       const newInv = await investmentsApi.create(data);
-      setInvestments((prev) => [...prev, newInv]);
+      setInvestments((prev) => [newInv, ...prev]);
       return { success: true, error: null };
     } catch (err) {
       return { success: false, error: err };

@@ -41,8 +41,17 @@ export const PerformanceScatter = ({ data }) => {
             
                         <Tooltip
               cursor={{ strokeDasharray: '3 3', stroke: '#ADB5BD' }}
-              contentStyle={{ borderRadius: '0.375rem', border: '1px solid #E9ECEF', color: '#1C1E21' }}
-              formatter={(val, name) => [`${val}%`, name]} />
+              content={({ active, payload }) => {
+                if (!active || !payload || !payload.length) return null;
+                const d = payload[0].payload;
+                return (
+                  <div style={{ background: '#fff', border: '1px solid #E9ECEF', borderRadius: '0.375rem', padding: '8px 12px', color: '#1C1E21', fontSize: 13 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{d.name}</div>
+                    <div>Return: <b>{d.return}%</b></div>
+                    <div>Risk: <b>{d.risk}%</b></div>
+                  </div>
+                );
+              }} />
             
                         <Scatter name="Assets" data={data}>
                             {data.map((entry, index) =>

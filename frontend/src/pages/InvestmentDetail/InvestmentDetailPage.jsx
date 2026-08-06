@@ -100,6 +100,8 @@ export const InvestmentDetailPage = () => {
       <TransactionFormModal
         isOpen={isTransactionModalOpen}
         investmentId={investment.id}
+        symbol={investment.symbol}
+        currency={investment.currency}
         onClose={() => setIsTransactionModalOpen(false)}
         onSubmit={handleAddTransaction}
       />

@@ -17,6 +17,7 @@ import com.portfoliomanager.model.PriceSnapshot;
 import com.portfoliomanager.repository.PriceSnapshotRepository;
 import com.portfoliomanager.model.Transaction;
 import com.portfoliomanager.repository.TransactionRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,7 @@ public class DashboardService {
         this.dividendRepository = dividendRepository;
     }
 
+    @Cacheable(value = "dashboard-summary", key = "#homeCurrency")
     @Transactional(readOnly = true)
     public DashboardSummaryResponse getSummary(String homeCurrency) {
         BigDecimal totalCost = BigDecimal.ZERO;
@@ -83,6 +85,7 @@ public class DashboardService {
         return res;
     }
 
+    @Cacheable(value = "dashboard-allocation", key = "#homeCurrency")
     @Transactional(readOnly = true)
     public List<AllocationResponse> getAllocation(String homeCurrency) {
         Map<InvestmentType, BigDecimal> valueByType = new EnumMap<>(InvestmentType.class);
@@ -172,7 +175,9 @@ public class DashboardService {
 
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             LocalDate evaluationDate = date;
-            BigDecimal dailyTotalValue = BigDecimal.ZERO;
+            BigDecimal dailyMarketValue = BigDecimal.ZERO;
+            BigDecimal dailyRealisedPnl = BigDecimal.ZERO;
+            BigDecimal dailyInvested = BigDecimal.ZERO;
 
             for (Investment inv : investments) {
                 List<Transaction> historicalTxns = txMap.get(inv.getId()).stream()
@@ -184,9 +189,12 @@ public class DashboardService {
                 BigDecimal fx = fxRateService.getRate(inv.getCurrency(), homeCurrency, evaluationDate).orElse(BigDecimal.ONE);
 
                 PnlResult pnl = PnlCalculator.calculate(cb, price, fx);
-                dailyTotalValue = dailyTotalValue.add(pnl.totalCostBasis().add(pnl.unrealisedPnl()));
+                dailyMarketValue = dailyMarketValue.add(pnl.totalCostBasis().add(pnl.unrealisedPnl()));
+                dailyRealisedPnl = dailyRealisedPnl.add(pnl.realisedPnl());
+                dailyInvested = dailyInvested.add(pnl.totalCostBasis());
             }
-            trend.add(new TrendResponse(evaluationDate, MoneyMath.roundCurrency(dailyTotalValue)));
+            BigDecimal totalWealth = dailyMarketValue.add(dailyRealisedPnl);
+            trend.add(new TrendResponse(evaluationDate, MoneyMath.roundCurrency(totalWealth), MoneyMath.roundCurrency(dailyInvested)));
         }
         return trend;
     }
@@ -206,11 +214,86 @@ public class DashboardService {
         return res;
     }
 
+    @Transactional(readOnly = true)
+    @Cacheable(value = "dashboard-performance", key = "#homeCurrency")
+    public List<com.portfoliomanager.dto.dashboard.PerformanceResponse> getPerformance(String homeCurrency) {
+        List<Investment> investments = investmentRepository.findAll();
+        LocalDate today = LocalDate.now();
+        List<com.portfoliomanager.dto.dashboard.PerformanceResponse> result = new ArrayList<>();
+
+        for (Investment inv : investments) {
+            PnlResult pnl = calculateCurrentPnl(inv, homeCurrency, today);
+            BigDecimal costBasis = pnl.totalCostBasis();
+            BigDecimal currentValue = costBasis.add(pnl.unrealisedPnl());
+
+            // Total return = unrealised + realised PnL, relative to remaining cost basis
+            BigDecimal totalPnl = pnl.unrealisedPnl().add(pnl.realisedPnl());
+            BigDecimal returnPct = BigDecimal.ZERO;
+            if (costBasis.compareTo(BigDecimal.ZERO) > 0) {
+                returnPct = totalPnl
+                        .multiply(new BigDecimal("100"))
+                        .divide(costBasis, 2, RoundingMode.HALF_UP);
+            }
+
+            BigDecimal riskScore = calculateVolatility(inv.getId());
+            if (riskScore == null) riskScore = typeRiskProxy(inv.getType());
+
+            com.portfoliomanager.dto.dashboard.PerformanceResponse p = new com.portfoliomanager.dto.dashboard.PerformanceResponse();
+            p.setSymbol(inv.getSymbol());
+            p.setName(inv.getName());
+            p.setReturnPct(returnPct);
+            p.setRiskScore(riskScore);
+            p.setCurrentValue(MoneyMath.roundCurrency(currentValue));
+            p.setInvestmentType(inv.getType().name());
+            result.add(p);
+        }
+        return result;
+    }
+
+    private BigDecimal calculateVolatility(UUID investmentId) {
+        List<PriceSnapshot> snapshots = priceSnapshotRepository.findByInvestmentIdOrderByFetchedAtDesc(investmentId);
+        if (snapshots.size() < 3) return null;
+
+        List<BigDecimal> prices = snapshots.stream()
+                .limit(30)
+                .map(PriceSnapshot::getPrice)
+                .collect(Collectors.toList());
+        Collections.reverse(prices);
+
+        List<Double> rets = new ArrayList<>();
+        for (int i = 1; i < prices.size(); i++) {
+            BigDecimal prev = prices.get(i - 1);
+            if (prev.compareTo(BigDecimal.ZERO) > 0) {
+                double r = prices.get(i).subtract(prev).divide(prev, 8, RoundingMode.HALF_UP).doubleValue();
+                rets.add(r);
+            }
+        }
+        if (rets.isEmpty()) return null;
+
+        double mean = rets.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+        double variance = rets.stream().mapToDouble(r -> (r - mean) * (r - mean)).average().orElse(0);
+        double stdDev = Math.sqrt(variance) * 100;
+        return BigDecimal.valueOf(stdDev).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal typeRiskProxy(InvestmentType type) {
+        return switch (type) {
+            case STOCK -> new BigDecimal("20.0");
+            case BOND  -> new BigDecimal("5.0");
+            case CASH  -> new BigDecimal("1.0");
+            default    -> new BigDecimal("25.0");
+        };
+    }
+
     private PnlResult calculateCurrentPnl(Investment inv, String homeCurrency, LocalDate date) {
-        List<Transaction> txns = transactionRepository.findByInvestmentIdOrderByTxnDateAsc(inv.getId());
+        List<Transaction> txns = transactionRepository.findByInvestmentIdOrderByTxnDateAsc(inv.getId())
+                .stream()
+                .filter(t -> !t.getTxnDate().isAfter(date))
+                .collect(Collectors.toList());
         CostBasisResult cb = CostBasisCalculator.calculate(txns);
 
         BigDecimal currentPrice = getLatestPriceBeforeDate(inv.getId(), date);
+        // getRate() now resolves via inverse / cross-rate / on-demand fetch before falling back to 1.0
         BigDecimal fxRate = fxRateService.getRate(inv.getCurrency(), homeCurrency, date).orElse(BigDecimal.ONE);
 
         return PnlCalculator.calculate(cb, currentPrice, fxRate);
@@ -222,6 +305,6 @@ public class DashboardService {
                 .filter(s -> !s.getFetchedAt().atZone(ZoneId.systemDefault()).toLocalDate().isAfter(date))
                 .map(PriceSnapshot::getPrice)
                 .findFirst()
-                .orElse(BigDecimal.ZERO);
+                .orElse(null); // null = no market price available
     }
 }

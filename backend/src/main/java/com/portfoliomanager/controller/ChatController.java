@@ -20,6 +20,6 @@ public class ChatController {
     public Map<String, String> chat(@RequestBody Map<String, String> request) {
         String userMessage = request.getOrDefault("message", "");
         String response = chatService.chat(userMessage);
-        return Map.of("response", response);
+        return Map.of("reply", response);
     }
 }

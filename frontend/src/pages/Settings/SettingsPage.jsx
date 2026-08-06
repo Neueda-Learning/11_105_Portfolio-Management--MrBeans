@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSettingsStore } from '../../store/useSettingsStore';
 import { settingsApi } from '../../api/settings';
 import { Card } from '../../components/ui/Card';
@@ -6,25 +6,26 @@ import { Card } from '../../components/ui/Card';
 
 export const SettingsPage = () => {
   const { baseCurrency, setBaseCurrency } = useSettingsStore();
-  const [selectedCurrency, setSelectedCurrency] = useState(baseCurrency);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
 
-  useEffect(() => {
-    setSelectedCurrency(baseCurrency);
-  }, [baseCurrency]);
+  // Apply the store immediately so dashboard updates in real-time as the user changes the dropdown.
+  // "Save" just persists the choice to the backend.
+  const handleCurrencyChange = (newCurrency) => {
+    setBaseCurrency(newCurrency);
+    setStatusMsg(null);
+  };
 
   const handleSave = async () => {
-    setIsLoading(true);
+    setIsSaving(true);
     setStatusMsg(null);
     try {
-      await settingsApi.updateSettings({ baseCurrency: selectedCurrency });
-      setBaseCurrency(selectedCurrency);
+      await settingsApi.updateSettings({ baseCurrency });
       setStatusMsg({ type: 'success', text: 'Settings saved successfully.' });
     } catch (err) {
       setStatusMsg({ type: 'error', text: err.message || 'Failed to save settings.' });
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
@@ -46,10 +47,11 @@ export const SettingsPage = () => {
                         </label>
                         <p className="text-sm text-text-muted mb-4">
                             All dashboard PnL calculations will be converted and displayed in this base currency using real-time FX rates.
+                            <br /><span className="text-accent-pink font-medium">Changes apply instantly</span> — the dashboard will refresh with the new currency as soon as you select it.
                         </p>
                         <select
-              value={selectedCurrency}
-              onChange={(e) => setSelectedCurrency(e.target.value)}
+              value={baseCurrency}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
               className="w-full max-w-xs px-3 py-2 border border-[#FFE6EE] rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-accent-pink focus:border-accent-pink">
               
                             <option value="USD">USD - US Dollar</option>
@@ -64,10 +66,10 @@ export const SettingsPage = () => {
                     <div className="pt-6 border-t border-[#FFE6EE] flex justify-end">
                         <button
               onClick={handleSave}
-              disabled={isLoading || selectedCurrency === baseCurrency}
+              disabled={isSaving}
               className="px-6 py-2 text-sm font-medium text-white bg-accent-pink rounded-md hover:bg-accent-pink-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               
-                            {isLoading ? 'Saving...' : 'Save Changes'}
+                            {isSaving ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                 </div>
