@@ -10,6 +10,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 const COLORS = ['#FFB3C6', '#FFE59A', '#C9E4F6', '#8FE365', '#D9C4F0'];
 
 export const AllocationChart = ({ data }) => {
+    const chartData = Array.isArray(data) ? data : [];
+
   return (
     <div className="bg-card rounded-lg p-6 h-96 flex flex-col">
             <h3 className="text-lg font-medium text-text-heading mb-4">Asset Allocation</h3>
@@ -17,16 +19,16 @@ export const AllocationChart = ({ data }) => {
                 <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                         <Pie
-              data={data}
+              data={chartData}
               cx="50%"
               cy="50%"
               innerRadius={80}
               outerRadius={120}
               paddingAngle={2}
-              dataKey="value"
+              dataKey="totalValue"
               nameKey="type">
               
-                            {data.map((entry, index) =>
+                            {chartData.map((entry, index) =>
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               )}
                         </Pie>
