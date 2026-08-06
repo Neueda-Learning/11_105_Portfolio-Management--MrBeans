@@ -2,13 +2,16 @@ package com.portfoliomanager.dto.dividend;
 
 import com.portfoliomanager.model.DividendMode;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 public class SimulateDividendRequest {
     
     @NotNull
+    @Positive
     private BigDecimal dividendPerShare;
     
+    @Positive
     private BigDecimal reinvestmentPrice; // Required if mode == ACCUMULATIVE
     
     @NotNull

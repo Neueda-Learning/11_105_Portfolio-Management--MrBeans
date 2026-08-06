@@ -7,13 +7,16 @@ import com.portfoliomanager.dto.investment.UpdateInvestmentRequest;
 import com.portfoliomanager.dto.investment.InvestmentResponse;
 import com.portfoliomanager.dto.pnl.InvestmentPnlResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
+@Validated
 @RequestMapping("/api/investments")
 public class InvestmentController {
 
@@ -49,7 +52,9 @@ public class InvestmentController {
     @GetMapping("/{id}/pnl")
     public InvestmentPnlResponse getInvestmentPnl(
             @PathVariable UUID id,
-            @RequestParam(defaultValue = "INR") String homeCurrency) {
+            @RequestParam(defaultValue = "INR")
+            @Pattern(regexp = "^[A-Za-z]{3}$", message = "homeCurrency must be a 3-letter ISO code")
+            String homeCurrency) {
         return dashboardService.getInvestmentPnl(id, homeCurrency);
     }
 

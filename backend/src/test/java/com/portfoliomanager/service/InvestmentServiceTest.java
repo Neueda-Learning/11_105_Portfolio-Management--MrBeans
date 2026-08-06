@@ -1,6 +1,9 @@
 package com.portfoliomanager.service;
 
+import com.portfoliomanager.repository.DividendRepository;
 import com.portfoliomanager.repository.InvestmentRepository;
+import com.portfoliomanager.repository.PriceSnapshotRepository;
+import com.portfoliomanager.repository.TransactionRepository;
 import com.portfoliomanager.model.Investment;
 import com.portfoliomanager.model.InvestmentType;
 import com.portfoliomanager.dto.investment.CreateInvestmentRequest;
@@ -29,6 +32,15 @@ class InvestmentServiceTest {
 
     @Mock
     private InvestmentRepository investmentRepository;
+
+    @Mock
+    private TransactionRepository transactionRepository;
+
+    @Mock
+    private DividendRepository dividendRepository;
+
+    @Mock
+    private PriceSnapshotRepository priceSnapshotRepository;
 
     @InjectMocks
     private InvestmentService investmentService;
@@ -113,6 +125,9 @@ class InvestmentServiceTest {
 
         investmentService.deleteInvestment(testId);
 
+        verify(transactionRepository, times(1)).deleteByInvestmentId(testId);
+        verify(dividendRepository, times(1)).deleteByInvestmentId(testId);
+        verify(priceSnapshotRepository, times(1)).deleteByInvestmentId(testId);
         verify(investmentRepository, times(1)).delete(testInvestment);
     }
     

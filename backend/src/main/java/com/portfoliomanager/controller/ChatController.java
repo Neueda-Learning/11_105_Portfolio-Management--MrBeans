@@ -1,7 +1,9 @@
 package com.portfoliomanager.controller;
 
+import com.portfoliomanager.dto.chatbot.ChatRequest;
 import com.portfoliomanager.service.ChatService;
 
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -17,8 +19,8 @@ public class ChatController {
     }
 
     @PostMapping
-    public Map<String, String> chat(@RequestBody Map<String, String> request) {
-        String userMessage = request.getOrDefault("message", "");
+    public Map<String, String> chat(@Valid @RequestBody ChatRequest request) {
+        String userMessage = request.getMessage();
         String response = chatService.chat(userMessage);
         return Map.of("response", response);
     }

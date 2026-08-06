@@ -1,7 +1,12 @@
 package com.portfoliomanager.service;
 
+import com.portfoliomanager.dto.dividend.CreateDividendRequest;
 import com.portfoliomanager.repository.DividendRepository;
+import com.portfoliomanager.repository.InvestmentRepository;
 import com.portfoliomanager.repository.TransactionRepository;
+import com.portfoliomanager.exception.ResourceNotFoundException;
+import com.portfoliomanager.dto.dividend.DividendResponse;
+import com.portfoliomanager.model.Dividend;
 import com.portfoliomanager.model.Transaction;
 import com.portfoliomanager.model.TransactionType;
 import com.portfoliomanager.dto.dividend.SimulateDividendRequest;
@@ -13,15 +18,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DividendServiceTest {
@@ -32,15 +42,20 @@ class DividendServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private InvestmentRepository investmentRepository;
+
     @InjectMocks
     private DividendService dividendService;
 
     private UUID investmentId;
+    private UUID dividendId;
     private List<Transaction> mockTransactions;
 
     @BeforeEach
     void setUp() {
         investmentId = UUID.randomUUID();
+        dividendId = UUID.randomUUID();
         
         // Setup holdings: Buy 100 shares total
         Transaction t1 = new Transaction();
@@ -50,6 +65,130 @@ class DividendServiceTest {
         t1.setFxRateToHome(BigDecimal.ONE);
         
         mockTransactions = List.of(t1);
+    }
+
+    @Test
+    void getDividendsByInvestment_NotFound_Throws() {
+        when(investmentRepository.existsById(investmentId)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> dividendService.getDividendsByInvestment(investmentId));
+    }
+
+    @Test
+    void getDividendsByInvestment_Success_MapsResponse() {
+        Dividend dividend = new Dividend();
+        dividend.setId(dividendId);
+        dividend.setInvestmentId(investmentId);
+        dividend.setAmount(new BigDecimal("100.0000"));
+        dividend.setDividendPerShare(new BigDecimal("1.25000000"));
+        dividend.setCurrency("USD");
+        dividend.setWithholdingTax(new BigDecimal("10.0000"));
+        dividend.setReinvestmentPrice(new BigDecimal("40.0000"));
+        dividend.setMode(DividendMode.ACCUMULATIVE);
+        dividend.setExDate(LocalDate.of(2026, 8, 1));
+        dividend.setPaymentDate(LocalDate.of(2026, 8, 5));
+        dividend.setCreatedAt(Instant.now());
+
+        when(investmentRepository.existsById(investmentId)).thenReturn(true);
+        when(dividendRepository.findByInvestmentIdOrderByPaymentDateDesc(investmentId)).thenReturn(List.of(dividend));
+
+        List<DividendResponse> responses = dividendService.getDividendsByInvestment(investmentId);
+
+        assertEquals(1, responses.size());
+        assertEquals(dividendId, responses.get(0).getId());
+        assertEquals("USD", responses.get(0).getCurrency());
+    }
+
+    @Test
+    void createDividend_NotFound_Throws() {
+        when(investmentRepository.existsById(investmentId)).thenReturn(false);
+
+        CreateDividendRequest request = new CreateDividendRequest();
+        request.setAmount(new BigDecimal("100.00"));
+        request.setCurrency("USD");
+        request.setMode(DividendMode.DISTRIBUTIVE);
+        request.setPaymentDate(LocalDate.now());
+
+        assertThrows(ResourceNotFoundException.class, () -> dividendService.createDividend(investmentId, request));
+    }
+
+    @Test
+    void createDividend_Distributive_SavesDividendOnly() {
+        when(investmentRepository.existsById(investmentId)).thenReturn(true);
+        when(dividendRepository.save(any(Dividend.class))).thenAnswer(invocation -> {
+            Dividend saved = invocation.getArgument(0);
+            saved.setId(dividendId);
+            return saved;
+        });
+
+        CreateDividendRequest request = new CreateDividendRequest();
+        request.setAmount(new BigDecimal("120.5678"));
+        request.setCurrency(" usd ");
+        request.setMode(DividendMode.DISTRIBUTIVE);
+        request.setPaymentDate(LocalDate.of(2026, 8, 10));
+
+        DividendResponse response = dividendService.createDividend(investmentId, request);
+
+        assertNotNull(response.getId());
+        assertEquals("USD", response.getCurrency());
+        assertEquals(0, new BigDecimal("120.57").compareTo(response.getAmount()));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+    }
+
+    @Test
+    void createDividend_Accumulative_WithReinvestment_CreatesBuyTransaction() {
+        when(investmentRepository.existsById(investmentId)).thenReturn(true);
+        when(dividendRepository.save(any(Dividend.class))).thenAnswer(invocation -> {
+            Dividend saved = invocation.getArgument(0);
+            saved.setId(dividendId);
+            return saved;
+        });
+
+        CreateDividendRequest request = new CreateDividendRequest();
+        request.setAmount(new BigDecimal("200.00"));
+        request.setWithholdingTax(new BigDecimal("20.00"));
+        request.setCurrency("usd");
+        request.setMode(DividendMode.ACCUMULATIVE);
+        request.setReinvestmentPrice(new BigDecimal("45.00"));
+        request.setPaymentDate(LocalDate.of(2026, 8, 10));
+
+        dividendService.createDividend(investmentId, request);
+
+        ArgumentCaptor<Transaction> txCaptor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository, times(1)).save(txCaptor.capture());
+        Transaction tx = txCaptor.getValue();
+        assertEquals(TransactionType.BUY, tx.getType());
+        assertEquals(investmentId, tx.getInvestmentId());
+        assertEquals("USD", tx.getCurrency());
+    }
+
+    @Test
+    void deleteDividend_NotFound_Throws() {
+        when(dividendRepository.findById(dividendId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> dividendService.deleteDividend(investmentId, dividendId));
+    }
+
+    @Test
+    void deleteDividend_WrongInvestment_Throws() {
+        Dividend dividend = new Dividend();
+        dividend.setId(dividendId);
+        dividend.setInvestmentId(UUID.randomUUID());
+        when(dividendRepository.findById(dividendId)).thenReturn(Optional.of(dividend));
+
+        assertThrows(ResourceNotFoundException.class, () -> dividendService.deleteDividend(investmentId, dividendId));
+    }
+
+    @Test
+    void deleteDividend_Success() {
+        Dividend dividend = new Dividend();
+        dividend.setId(dividendId);
+        dividend.setInvestmentId(investmentId);
+        when(dividendRepository.findById(dividendId)).thenReturn(Optional.of(dividend));
+
+        dividendService.deleteDividend(investmentId, dividendId);
+
+        verify(dividendRepository, times(1)).delete(dividend);
     }
 
     @Test

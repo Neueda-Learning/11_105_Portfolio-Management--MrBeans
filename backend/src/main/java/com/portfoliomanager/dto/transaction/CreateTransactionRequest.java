@@ -2,6 +2,8 @@ package com.portfoliomanager.dto.transaction;
 
 import com.portfoliomanager.model.TransactionType;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -10,9 +12,13 @@ public class CreateTransactionRequest {
     @NotNull
     private TransactionType type;
     
+    @Positive
     private BigDecimal quantity;
+    @Positive
     private BigDecimal price;
+    @Pattern(regexp = "^[A-Za-z]{3}$", message = "currency must be a 3-letter ISO code")
     private String currency;
+    @Positive
     private BigDecimal fxRateToHome;
     
     @NotNull

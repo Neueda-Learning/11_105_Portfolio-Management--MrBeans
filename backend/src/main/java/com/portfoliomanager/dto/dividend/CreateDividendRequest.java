@@ -3,7 +3,9 @@ package com.portfoliomanager.dto.dividend;
 import com.portfoliomanager.model.DividendMode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,13 +16,17 @@ public class CreateDividendRequest {
     @Positive
     private BigDecimal amount;
 
+    @Positive
     private BigDecimal dividendPerShare; // Optional: stored for reference
 
     @NotBlank
+    @Pattern(regexp = "^[A-Za-z]{3}$", message = "currency must be a 3-letter ISO code")
     private String currency;
 
+    @PositiveOrZero
     private BigDecimal withholdingTax = BigDecimal.ZERO; // Tax deducted at source
 
+    @Positive
     private BigDecimal reinvestmentPrice; // Required for ACCUMULATIVE auto-BUY
 
     @NotNull
