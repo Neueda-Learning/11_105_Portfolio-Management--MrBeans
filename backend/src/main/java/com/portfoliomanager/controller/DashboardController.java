@@ -58,11 +58,16 @@ public class DashboardController {
 
     @GetMapping("/trend/filter")
     public List<TrendResponse> getTrendFiltered(
-            @RequestParam(defaultValue = "INR") String homeCurrency,
+            @RequestParam(defaultValue = "INR")
+            @Pattern(regexp = "^[A-Za-z]{3}$", message = "homeCurrency must be a 3-letter ISO code")
+            String homeCurrency,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) List<InvestmentType> types,
-            @RequestParam(defaultValue = "30") int days) {
+            @RequestParam(defaultValue = "30")
+            @Min(value = 1, message = "days must be at least 1")
+            @Max(value = 3650, message = "days must be 3650 or less")
+            int days) {
         return dashboardService.getTrendFiltered(homeCurrency, fromDate, toDate, types, days);
     }
 }
