@@ -7,6 +7,7 @@ public class DashboardSummaryResponse {
     private BigDecimal totalCostBasis;
     private BigDecimal totalRealisedPnl;
     private BigDecimal totalUnrealisedPnl;
+    private BigDecimal dividendIncomeThisYear;
 
     public BigDecimal getTotalValue() { return totalValue; }
     public void setTotalValue(BigDecimal totalValue) { this.totalValue = totalValue; }
@@ -19,4 +20,7 @@ public class DashboardSummaryResponse {
 
     public BigDecimal getTotalUnrealisedPnl() { return totalUnrealisedPnl; }
     public void setTotalUnrealisedPnl(BigDecimal totalUnrealisedPnl) { this.totalUnrealisedPnl = totalUnrealisedPnl; }
+
+    public BigDecimal getDividendIncomeThisYear() { return dividendIncomeThisYear; }
+    public void setDividendIncomeThisYear(BigDecimal dividendIncomeThisYear) { this.dividendIncomeThisYear = dividendIncomeThisYear; }
 }

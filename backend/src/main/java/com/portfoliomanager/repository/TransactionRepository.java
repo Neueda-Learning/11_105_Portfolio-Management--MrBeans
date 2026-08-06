@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.UUID;
 
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
-    
+
     // Ordered by txn_date ascending per indexing checklist (V1 schema index)
     List<Transaction> findByInvestmentIdOrderByTxnDateAsc(UUID investmentId);
+
+    void deleteByInvestmentId(UUID investmentId);
 }

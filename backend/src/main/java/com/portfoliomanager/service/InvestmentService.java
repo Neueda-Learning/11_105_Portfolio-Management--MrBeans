@@ -1,6 +1,9 @@
 package com.portfoliomanager.service;
 
+import com.portfoliomanager.repository.DividendRepository;
 import com.portfoliomanager.repository.InvestmentRepository;
+import com.portfoliomanager.repository.PriceSnapshotRepository;
+import com.portfoliomanager.repository.TransactionRepository;
 import com.portfoliomanager.model.Investment;
 
 import com.portfoliomanager.exception.ResourceNotFoundException;
@@ -18,9 +21,18 @@ import java.util.stream.Collectors;
 public class InvestmentService {
 
     private final InvestmentRepository investmentRepository;
+    private final TransactionRepository transactionRepository;
+    private final DividendRepository dividendRepository;
+    private final PriceSnapshotRepository priceSnapshotRepository;
 
-    public InvestmentService(InvestmentRepository investmentRepository) {
+    public InvestmentService(InvestmentRepository investmentRepository,
+                             TransactionRepository transactionRepository,
+                             DividendRepository dividendRepository,
+                             PriceSnapshotRepository priceSnapshotRepository) {
         this.investmentRepository = investmentRepository;
+        this.transactionRepository = transactionRepository;
+        this.dividendRepository = dividendRepository;
+        this.priceSnapshotRepository = priceSnapshotRepository;
     }
 
     @Transactional(readOnly = true)
@@ -66,6 +78,10 @@ public class InvestmentService {
     @Transactional
     public void deleteInvestment(UUID id) {
         Investment investment = getInvestmentEntity(id);
+        // Delete child records first to satisfy FK constraints
+        transactionRepository.deleteByInvestmentId(id);
+        dividendRepository.deleteByInvestmentId(id);
+        priceSnapshotRepository.deleteByInvestmentId(id);
         investmentRepository.delete(investment);
     }
 

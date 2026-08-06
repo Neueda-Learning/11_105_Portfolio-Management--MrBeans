@@ -11,6 +11,7 @@ portfolio:
   home-currency-default: INR
   price-feed:
     provider: yahoo-finance        # no API key required
+    update-frequency-ms: 1800000   # 30 minutes
   chatbot:
     provider: ${CHATBOT_PROVIDER:groq}   # groq | gemini
     groq:
