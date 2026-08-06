@@ -2,21 +2,26 @@ package com.portfoliomanager.repository;
 
 import com.portfoliomanager.model.Dividend;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface DividendRepository extends JpaRepository<Dividend, UUID> {
+public interface DividendRepository {
+    Dividend save(Dividend dividend);
+
     List<Dividend> findByInvestmentId(UUID investmentId);
+
     List<Dividend> findByInvestmentIdOrderByPaymentDateDesc(UUID investmentId);
+
+    Optional<Dividend> findById(UUID id);
+
+    void delete(Dividend dividend);
+
     void deleteByInvestmentId(UUID investmentId);
 
-    @Query("SELECT COALESCE(SUM(d.amount - d.withholdingTax), 0) FROM Dividend d WHERE d.paymentDate BETWEEN :start AND :end")
-    Optional<BigDecimal> sumNetAmountByPaymentDateBetween(@Param("start") LocalDate start, @Param("end") LocalDate end);
+    void deleteAllInBatch();
+
+    Optional<BigDecimal> sumNetAmountByPaymentDateBetween(LocalDate start, LocalDate end);
 }

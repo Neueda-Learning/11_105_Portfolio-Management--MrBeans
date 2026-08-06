@@ -5,6 +5,7 @@ import com.portfoliomanager.model.InvestmentType;
 import com.portfoliomanager.model.PriceSnapshot;
 import com.portfoliomanager.model.Transaction;
 import com.portfoliomanager.model.TransactionType;
+import com.portfoliomanager.repository.DividendRepository;
 import com.portfoliomanager.repository.InvestmentRepository;
 import com.portfoliomanager.repository.PriceSnapshotRepository;
 import com.portfoliomanager.repository.TransactionRepository;
@@ -29,18 +30,22 @@ public class DevDataSeederService {
     private final InvestmentRepository investmentRepository;
     private final TransactionRepository transactionRepository;
     private final PriceSnapshotRepository priceSnapshotRepository;
+    private final DividendRepository dividendRepository;
 
     public DevDataSeederService(InvestmentRepository investmentRepository,
                                 TransactionRepository transactionRepository,
-                                PriceSnapshotRepository priceSnapshotRepository) {
+                                PriceSnapshotRepository priceSnapshotRepository,
+                                DividendRepository dividendRepository) {
         this.investmentRepository = investmentRepository;
         this.transactionRepository = transactionRepository;
         this.priceSnapshotRepository = priceSnapshotRepository;
+        this.dividendRepository = dividendRepository;
     }
 
     @Transactional
     public SeedSummary seed(int investmentCount, int transactionsPerInvestment, int snapshotDays, boolean wipeExistingData) {
         if (wipeExistingData) {
+            dividendRepository.deleteAllInBatch();
             priceSnapshotRepository.deleteAllInBatch();
             transactionRepository.deleteAllInBatch();
             investmentRepository.deleteAllInBatch();
