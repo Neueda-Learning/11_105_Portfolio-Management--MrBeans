@@ -5,6 +5,7 @@ import com.portfoliomanager.tool.ToolRegistry;
 import com.portfoliomanager.tool.GetBestPerformerTool;
 import com.portfoliomanager.tool.GetTodayFocusTool;
 import com.portfoliomanager.client.LlmClient;
+import com.portfoliomanager.service.DashboardService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
 class ChatServiceTest {
 
@@ -21,9 +23,10 @@ class ChatServiceTest {
     @BeforeEach
     void setUp() {
         fakeLlmClient = new FakeLlmClient();
+        DashboardService mockDashboard = mock(DashboardService.class);
         
         ToolRegistry registry = new ToolRegistry(List.of(
-                new GetBestPerformerTool(), 
+                new GetBestPerformerTool(mockDashboard), 
                 new GetTodayFocusTool()
         ));
         

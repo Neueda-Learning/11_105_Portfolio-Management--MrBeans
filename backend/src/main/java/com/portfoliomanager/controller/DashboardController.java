@@ -4,6 +4,7 @@ import com.portfoliomanager.service.DashboardService;
 
 import com.portfoliomanager.dto.dashboard.AllocationResponse;
 import com.portfoliomanager.dto.dashboard.DashboardSummaryResponse;
+import com.portfoliomanager.dto.dashboard.PerformanceResponse;
 import com.portfoliomanager.dto.dashboard.TrendResponse;
 import com.portfoliomanager.model.InvestmentType;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -69,5 +70,10 @@ public class DashboardController {
             @Max(value = 3650, message = "days must be 3650 or less")
             int days) {
         return dashboardService.getTrendFiltered(homeCurrency, fromDate, toDate, types, days);
+    }
+
+    @GetMapping("/performance")
+    public List<PerformanceResponse> getPerformance(@RequestParam(defaultValue = "INR") String homeCurrency) {
+        return dashboardService.getPerformance(homeCurrency);
     }
 }

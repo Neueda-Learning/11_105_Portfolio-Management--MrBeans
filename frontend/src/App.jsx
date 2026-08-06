@@ -5,6 +5,7 @@ import { InvestmentListPage } from './pages/Investments/InvestmentListPage';
 import { InvestmentDetailPage } from './pages/InvestmentDetail/InvestmentDetailPage';
 import { HistoryPage } from './pages/History/HistoryPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
+import { AnalogiesPage } from './pages/Analogies/AnalogiesPage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/investments/:id" element={<InvestmentDetailPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/analogies" element={<AnalogiesPage />} />
       </Routes>
     </AppShell>);
 

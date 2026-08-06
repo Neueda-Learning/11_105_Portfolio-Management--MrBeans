@@ -48,7 +48,8 @@ export const usePortfolioTrend = (filters) => {
         });
         const mapped = data.map((row) => ({
           date: row.date,
-          value: row.portfolioValue
+          portfolioValue: row.portfolioValue,
+          investedAmount: row.investedAmount,
         }));
 
         if (isMounted) {

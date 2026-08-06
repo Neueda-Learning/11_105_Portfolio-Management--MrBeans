@@ -5,15 +5,18 @@ import com.portfoliomanager.repository.InvestmentRepository;
 import com.portfoliomanager.repository.PriceSnapshotRepository;
 import com.portfoliomanager.repository.TransactionRepository;
 import com.portfoliomanager.model.Investment;
+import com.portfoliomanager.model.PriceSnapshot;
 
 import com.portfoliomanager.exception.ResourceNotFoundException;
 import com.portfoliomanager.dto.investment.CreateInvestmentRequest;
 import com.portfoliomanager.dto.investment.UpdateInvestmentRequest;
 import com.portfoliomanager.dto.investment.InvestmentResponse;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -48,6 +51,7 @@ public class InvestmentService {
         return mapToResponse(investment);
     }
 
+    @CacheEvict(value = {"dashboard-summary", "dashboard-allocation", "dashboard-performance", "dashboard-trend"}, allEntries = true)
     @Transactional
     public InvestmentResponse createInvestment(CreateInvestmentRequest request) {
         Investment investment = new Investment();
@@ -75,6 +79,7 @@ public class InvestmentService {
         return mapToResponse(updated);
     }
 
+    @CacheEvict(value = {"dashboard-summary", "dashboard-allocation", "dashboard-performance", "dashboard-trend"}, allEntries = true)
     @Transactional
     public void deleteInvestment(UUID id) {
         Investment investment = getInvestmentEntity(id);
@@ -83,6 +88,22 @@ public class InvestmentService {
         dividendRepository.deleteByInvestmentId(id);
         priceSnapshotRepository.deleteByInvestmentId(id);
         investmentRepository.delete(investment);
+    }
+
+    /** Returns the latest price snapshot for the given investment, or empty fields if none exists. */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getCurrentPrice(UUID investmentId) {
+        getInvestmentEntity(investmentId); // throws 404 if investment not found
+        List<PriceSnapshot> snapshots = priceSnapshotRepository.findByInvestmentIdOrderByFetchedAtDesc(investmentId);
+        if (snapshots.isEmpty()) {
+            return Map.of("price", (Object) null, "currency", (Object) null, "fetchedAt", (Object) null);
+        }
+        PriceSnapshot latest = snapshots.get(0);
+        return Map.of(
+            "price", latest.getPrice(),
+            "currency", latest.getCurrency(),
+            "fetchedAt", latest.getFetchedAt().toString()
+        );
     }
 
     private Investment getInvestmentEntity(UUID id) {

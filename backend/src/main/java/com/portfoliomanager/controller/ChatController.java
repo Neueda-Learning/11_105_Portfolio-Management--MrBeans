@@ -22,6 +22,6 @@ public class ChatController {
     public Map<String, String> chat(@Valid @RequestBody ChatRequest request) {
         String userMessage = request.getMessage();
         String response = chatService.chat(userMessage);
-        return Map.of("response", response);
+        return Map.of("reply", response);
     }
 }

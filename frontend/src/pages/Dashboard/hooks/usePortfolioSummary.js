@@ -1,46 +1,58 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { dashboardApi } from '../../../api/dashboard';
-
-import { ApiError } from '../../../api/client';
+import { useSettingsStore } from '../../../store/useSettingsStore';
 
 export const usePortfolioSummary = () => {
+  const baseCurrency = useSettingsStore((s) => s.baseCurrency);
   const [summary, setSummary] = useState(null);
   const [allocation, setAllocation] = useState([]);
+  const [trend, setTrend] = useState([]);
+  const [performance, setPerformance] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  // Track whether we have shown data at least once so visibilitychange
+  // refreshes don't replace the dashboard with a blank loading spinner.
+  const hasDataRef = useRef(false);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    if (!hasDataRef.current) {
       setIsLoading(true);
-      try {
-        const [summaryData, allocationData] = await Promise.all([
-        dashboardApi.getSummary(),
-        dashboardApi.getAssetAllocation()]
-        );
+    } else {
+      setIsRefreshing(true);
+    }
+    try {
+      const [summaryData, allocationData, trendData, perfData] = await Promise.all([
+        dashboardApi.getSummary(baseCurrency),
+        dashboardApi.getAssetAllocation(baseCurrency),
+        dashboardApi.getTrend(baseCurrency, 30),
+        dashboardApi.getPerformance(baseCurrency),
+      ]);
+      setSummary(summaryData);
+      setAllocation(allocationData);
+      setTrend(trendData);
+      setPerformance(perfData);
+      setError(null);
+      hasDataRef.current = true;
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [baseCurrency]);
 
-        if (isMounted) {
-          setSummary(summaryData);
-          setAllocation(allocationData);
-          setError(null);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
+  // Fetch on mount and whenever baseCurrency changes
+  useEffect(() => {
     fetchData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  }, [fetchData]);
 
-  return { summary, allocation, isLoading, error };
+  // Re-fetch when the user navigates back to this tab / window (silently)
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchData(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [fetchData]);
+
+  return { summary, allocation, trend, performance, isLoading, isRefreshing, error, refetch: fetchData };
 };

@@ -16,7 +16,11 @@ public class PnlCalculator {
 
     public static PnlResult calculate(CostBasisResult costBasis, BigDecimal currentPriceLocal, BigDecimal currentFxRate) {
         BigDecimal qty = costBasis.totalQuantity();
-        BigDecimal price = currentPriceLocal != null ? currentPriceLocal : BigDecimal.ZERO;
+        // null or zero price means no market data — fall back to avg cost so unrealised PnL = 0
+        // ("valued at cost" for illiquid / unpriced assets)
+        BigDecimal price = (currentPriceLocal != null && currentPriceLocal.compareTo(BigDecimal.ZERO) > 0)
+                ? currentPriceLocal
+                : (qty.compareTo(BigDecimal.ZERO) > 0 ? costBasis.avgCostLocal() : BigDecimal.ZERO);
 
         // 1. Local Unrealised = Current Value - Cost Basis
         BigDecimal currentValueLocal = qty.multiply(price);

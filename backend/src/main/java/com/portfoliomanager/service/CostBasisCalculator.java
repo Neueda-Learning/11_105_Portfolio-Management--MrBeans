@@ -36,22 +36,25 @@ public class CostBasisCalculator {
             } else if (t.getType() == TransactionType.SELL || t.getType() == TransactionType.WITHDRAWAL) {
                 if (qty.compareTo(BigDecimal.ZERO) == 0) continue; // Skip sells if no holdings
 
+                // Cap sell quantity at available holdings (prevents negative positions from bad data)
+                BigDecimal effectiveSellQty = tQty.min(qty);
+
                 // Weighted average cost at the exact moment before the sell
                 BigDecimal avgCostLocal = costLocal.divide(qty, 8, RoundingMode.HALF_UP);
                 BigDecimal avgCostHome = costHome.divide(qty, 8, RoundingMode.HALF_UP);
 
                 // Realised PNL = sold_qty * (sell_price - avg_cost)
-                BigDecimal pnlLocal = tQty.multiply(tPrice.subtract(avgCostLocal));
+                BigDecimal pnlLocal = effectiveSellQty.multiply(tPrice.subtract(avgCostLocal));
                 
                 // For home currency: (sold_qty * sell_price * historical_sell_fx) - (sold_qty * avg_cost_home)
                 BigDecimal sellProceedsHome = CurrencyConverter.toHomeHistorical(tPrice, tFx);
-                BigDecimal pnlHome = tQty.multiply(sellProceedsHome.subtract(avgCostHome));
+                BigDecimal pnlHome = effectiveSellQty.multiply(sellProceedsHome.subtract(avgCostHome));
 
                 realisedLocal = realisedLocal.add(pnlLocal);
                 realisedHome = realisedHome.add(pnlHome);
 
                 // Deduct the sold quantity from the pool at the average cost
-                qty = qty.subtract(tQty);
+                qty = qty.subtract(effectiveSellQty);
                 costLocal = qty.multiply(avgCostLocal);
                 costHome = qty.multiply(avgCostHome);
             }

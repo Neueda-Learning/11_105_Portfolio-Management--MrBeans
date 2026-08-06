@@ -1,16 +1,14 @@
 import React from 'react';
-import { Area, AreaChart, CartesianGrid, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, AreaChart, CartesianGrid, Line, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useSettingsStore } from '../../store/useSettingsStore';
 
-const formatCurrencyCompact = (value) => {
-  if (typeof value !== 'number') {
-    return '$0';
-  }
-
+const formatCurrencyCompact = (value, currency = 'USD') => {
+  if (typeof value !== 'number') return `0`;
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency,
     notation: 'compact',
-    maximumFractionDigits: 1
+    maximumFractionDigits: 1,
   }).format(value);
 };
 
@@ -28,25 +26,40 @@ const formatDateLabel = (value) => {
 };
 
 const TrendTooltip = ({ active, payload, label }) => {
+  const baseCurrency = useSettingsStore((s) => s.baseCurrency) || 'USD';
+  const fmt = (v) => formatCurrencyCompact(v, baseCurrency);
   if (!active || !payload || payload.length === 0) {
     return null;
   }
 
-  const value = payload[0]?.value ?? 0;
+  const portfolioValue = payload.find((p) => p.dataKey === 'portfolioValue')?.value;
+  const investedAmount = payload.find((p) => p.dataKey === 'investedAmount')?.value;
 
   return (
     <div className="rounded-xl border border-accent-pink/25 bg-white/95 px-3 py-2 shadow-md">
       <div className="text-[11px] text-text-muted">{formatDateLabel(label)}</div>
-      <div className="text-sm font-semibold text-text-heading">{formatCurrencyCompact(value)}</div>
+      {portfolioValue != null && (
+        <div className="text-sm font-semibold text-text-heading">
+          Total Wealth: {fmt(portfolioValue)}
+        </div>
+      )}
+      {investedAmount != null && (
+        <div className="text-xs text-text-muted">
+          Invested: {fmt(investedAmount)}
+        </div>
+      )}
     </div>
   );
 };
 
 export const TrendChart = ({ data, showCard = true, showTitle = true }) => {
+  const baseCurrency = useSettingsStore((s) => s.baseCurrency) || 'USD';
+  const fmt = (v) => formatCurrencyCompact(v, baseCurrency);
   // Determine overall trend to strictly map line color to gain/loss token
-  const isGain = data.length > 1 && data[data.length - 1].value >= data[0].value;
+  const isGain = data.length > 1 && data[data.length - 1].portfolioValue >= data[0].portfolioValue;
   const lineColor = isGain ? '#8FE365' : '#F0645A'; // gain or loss
   const startColor = isGain ? '#BDEFA3' : '#F7BBB7';
+  const investedColor = '#ADB5BD'; // neutral gray for invested line
 
   const chartContent = (
     <>
@@ -81,15 +94,33 @@ export const TrendChart = ({ data, showCard = true, showTitle = true }) => {
                 tickLine={false}
                 width={62}
                 tick={{ fill: '#8A7B85', fontSize: 11 }}
-                tickFormatter={formatCurrencyCompact}
+                tickFormatter={fmt}
               />
 
               <Tooltip content={<TrendTooltip />} />
+              <Legend
+                formatter={(value) =>
+                  value === 'portfolioValue' ? 'Total Wealth (incl. gains)' : 'Invested (cost basis)'
+                }
+                wrapperStyle={{ fontSize: '11px', color: '#8A7B85', paddingTop: '4px' }}
+              />
 
-              <Area type="monotone" dataKey="value" stroke="none" fill="url(#trendArea)" />
+              {/* Gradient area under the wealth line — legendType=none to avoid duplicate legend entry */}
+              <Area type="monotone" dataKey="portfolioValue" stroke="none" fill="url(#trendArea)" legendType="none" />
+              {/* Dashed gray line: cost basis of remaining holdings */}
               <Line
                 type="monotone"
-                dataKey="value"
+                dataKey="investedAmount"
+                stroke={investedColor}
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+                dot={false}
+                activeDot={{ r: 4, fill: investedColor, stroke: '#fff', strokeWidth: 2 }}
+              />
+              {/* Solid colored line: total wealth = market value + realised PnL */}
+              <Line
+                type="monotone"
+                dataKey="portfolioValue"
                 stroke={lineColor}
                 strokeWidth={2.8}
                 dot={false}
@@ -109,6 +140,6 @@ export const TrendChart = ({ data, showCard = true, showTitle = true }) => {
   return (
     <div className="bg-card rounded-lg p-6 h-96 flex flex-col">
       {chartContent}
-        </div>);
-
+    </div>
+  );
 };

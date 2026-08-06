@@ -56,6 +56,14 @@ public class JdbcFxRateRepository implements FxRateRepository {
         return rows.stream().findFirst();
     }
 
+    @Override
+    public Optional<FxRate> findMostRecentByFromCurrencyAndToCurrency(String fromCurrency, String toCurrency) {
+        String sql = "SELECT id, from_currency, to_currency, rate, rate_date FROM fx_rates "
+                + "WHERE from_currency = ? AND to_currency = ? ORDER BY rate_date DESC LIMIT 1";
+        List<FxRate> rows = jdbcTemplate.query(sql, rowMapper, fromCurrency, toCurrency);
+        return rows.stream().findFirst();
+    }
+
     private Optional<FxRate> findById(UUID id) {
         String sql = "SELECT id, from_currency, to_currency, rate, rate_date FROM fx_rates WHERE id = ?";
         List<FxRate> rows = jdbcTemplate.query(sql, rowMapper, id.toString());
