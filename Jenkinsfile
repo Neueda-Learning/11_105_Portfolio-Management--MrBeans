@@ -23,6 +23,8 @@ pipeline {
 			steps {
 				sh '''
 					docker run --rm \
+						--user "$(id -u):$(id -g)" \
+						--group-add "$(stat -c '%g' /var/run/docker.sock)" \
 						-v "$WORKSPACE/backend:/app" \
 						-v /var/run/docker.sock:/var/run/docker.sock \
 						-w /app \
@@ -41,6 +43,7 @@ pipeline {
 			steps {
 				sh '''
 					docker run --rm \
+						--user "$(id -u):$(id -g)" \
 						-v "$WORKSPACE/frontend:/app" \
 						-w /app \
 						node:22.22.2-alpine \
@@ -99,7 +102,7 @@ pipeline {
 		}
 		always {
 			sh 'docker image prune -f || true'
-			deleteDir()
+			cleanWs deleteDirs: true, notFailBuild: true
 		}
 	}
 }

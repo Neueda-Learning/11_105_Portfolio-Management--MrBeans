@@ -63,7 +63,7 @@ class DashboardControllerTest {
     @Test
     void getTrend_DelegatesToService() {
         List<TrendResponse> expected = List.of(
-                new TrendResponse(LocalDate.now(), new BigDecimal("1000.00"))
+            new TrendResponse(LocalDate.now(), new BigDecimal("1000.00"), new BigDecimal("900.00"))
         );
 
         when(dashboardService.getTrend("INR", 30)).thenReturn(expected);
@@ -80,8 +80,8 @@ class DashboardControllerTest {
         LocalDate toDate = LocalDate.now();
         List<InvestmentType> types = List.of(InvestmentType.STOCK);
         List<TrendResponse> expected = List.of(
-                new TrendResponse(fromDate, new BigDecimal("100.00")),
-                new TrendResponse(toDate, new BigDecimal("200.00"))
+            new TrendResponse(fromDate, new BigDecimal("100.00"), new BigDecimal("90.00")),
+            new TrendResponse(toDate, new BigDecimal("200.00"), new BigDecimal("180.00"))
         );
 
         when(dashboardService.getTrendFiltered("USD", fromDate, toDate, types, 30)).thenReturn(expected);
