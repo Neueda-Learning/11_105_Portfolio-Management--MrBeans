@@ -67,6 +67,20 @@ From repository root:
 docker compose --env-file .env up -d --build
 ```
 
+### Optional: Run frontend and backend through port 8080 only
+
+Use this if VM port 80 is blocked but 8080 is reachable.
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.vm-8080.yml up -d --build
+```
+
+In this mode:
+- Frontend: `http://<VM_IP>:8080/`
+- Backend API via proxy: `http://<VM_IP>:8080/api/...`
+- Swagger via proxy: `http://<VM_IP>:8080/swagger-ui/index.html`
+- Direct backend port (optional): `8081`
+
 ## 5) Verify containers and health
 
 ```bash
