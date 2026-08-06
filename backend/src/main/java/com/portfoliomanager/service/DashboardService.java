@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -114,32 +115,78 @@ public class DashboardService {
 
     @Transactional(readOnly = true)
     public List<TrendResponse> getTrend(String homeCurrency, int days) {
-        List<TrendResponse> trend = new ArrayList<>();
+        return getTrendFiltered(homeCurrency, null, null, null, days);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TrendResponse> getTrendFiltered(String homeCurrency,
+                                                LocalDate fromDate,
+                                                LocalDate toDate,
+                                                List<InvestmentType> types,
+                                                int days) {
+        if (days <= 0) {
+            throw new IllegalArgumentException("days must be greater than 0");
+        }
+
         LocalDate today = LocalDate.now();
+        LocalDate startDate;
+        LocalDate endDate;
+
+        if (fromDate != null || toDate != null) {
+            if (fromDate == null || toDate == null) {
+                throw new IllegalArgumentException("Both fromDate and toDate must be provided together");
+            }
+            if (fromDate.isAfter(toDate)) {
+                throw new IllegalArgumentException("fromDate must be before or equal to toDate");
+            }
+
+            long totalDays = ChronoUnit.DAYS.between(fromDate, toDate) + 1;
+            if (totalDays > 730) {
+                throw new IllegalArgumentException("Date range cannot exceed 730 days");
+            }
+
+            startDate = fromDate;
+            endDate = toDate;
+        } else {
+            if (days > 730) {
+                throw new IllegalArgumentException("days cannot exceed 730");
+            }
+            startDate = today.minusDays(days - 1L);
+            endDate = today;
+        }
+
+        List<TrendResponse> trend = new ArrayList<>();
+
         List<Investment> investments = investmentRepository.findAll();
+        if (types != null && !types.isEmpty()) {
+            Set<InvestmentType> selectedTypes = EnumSet.copyOf(types);
+            investments = investments.stream()
+                    .filter(inv -> selectedTypes.contains(inv.getType()))
+                    .collect(Collectors.toList());
+        }
 
         Map<UUID, List<Transaction>> txMap = new HashMap<>();
         for (Investment inv : investments) {
             txMap.put(inv.getId(), transactionRepository.findByInvestmentIdOrderByTxnDateAsc(inv.getId()));
         }
 
-        for (int i = days - 1; i >= 0; i--) {
-            LocalDate date = today.minusDays(i);
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            LocalDate evaluationDate = date;
             BigDecimal dailyTotalValue = BigDecimal.ZERO;
 
             for (Investment inv : investments) {
                 List<Transaction> historicalTxns = txMap.get(inv.getId()).stream()
-                        .filter(t -> !t.getTxnDate().isAfter(date))
+                        .filter(t -> !t.getTxnDate().isAfter(evaluationDate))
                         .collect(Collectors.toList());
 
                 CostBasisResult cb = CostBasisCalculator.calculate(historicalTxns);
-                BigDecimal price = getLatestPriceBeforeDate(inv.getId(), date);
-                BigDecimal fx = fxRateService.getRate(inv.getCurrency(), homeCurrency, date).orElse(BigDecimal.ONE);
+                BigDecimal price = getLatestPriceBeforeDate(inv.getId(), evaluationDate);
+                BigDecimal fx = fxRateService.getRate(inv.getCurrency(), homeCurrency, evaluationDate).orElse(BigDecimal.ONE);
 
                 PnlResult pnl = PnlCalculator.calculate(cb, price, fx);
                 dailyTotalValue = dailyTotalValue.add(pnl.totalCostBasis().add(pnl.unrealisedPnl()));
             }
-            trend.add(new TrendResponse(date, MoneyMath.roundCurrency(dailyTotalValue)));
+            trend.add(new TrendResponse(evaluationDate, MoneyMath.roundCurrency(dailyTotalValue)));
         }
         return trend;
     }
