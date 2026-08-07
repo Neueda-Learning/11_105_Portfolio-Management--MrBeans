@@ -29,15 +29,15 @@ export const SummaryCards = ({ summary }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-accent-pink text-white rounded-xl p-8">
+            <div className="bg-accent-pink text-white rounded-xl p-8 overflow-hidden">
                 <div className="flex items-center text-white/90 mb-2">
                     <Wallet className="w-6 h-6 mr-2" />
                     <h3 className="text-sm font-semibold">Total Value</h3>
                 </div>
-                <div className="text-4xl font-semibold">
+                <div className="min-w-0 text-3xl md:text-4xl font-semibold leading-tight break-words tabular-nums">
                     {formatCurrency(summary.totalValue)}
                 </div>
-                <div className="text-sm text-white/80 mt-2">
+                <div className="text-sm text-white/80 mt-2 break-words">
                     Invested: {formatCurrency(summary.totalCostBasis)}
                 </div>
             </div>
@@ -47,9 +47,9 @@ export const SummaryCards = ({ summary }) => {
                     <PieChart className="w-6 h-6 mr-2" />
                     <h3 className="text-sm font-semibold" data-testid="label-realised-pnl">Realised PnL</h3>
                 </div>
-                <div className={`text-4xl font-semibold flex items-center ${getPnLColor(summary.totalRealisedPnl)}`}>
+                <div className={`min-w-0 text-3xl md:text-4xl font-semibold flex items-center leading-tight break-words tabular-nums ${getPnLColor(summary.totalRealisedPnl)}`}>
                     {getPnLIcon(summary.totalRealisedPnl)}
-                    <span data-testid="value-realised-pnl">{formatCurrency(summary.totalRealisedPnl)}</span>
+                    <span data-testid="value-realised-pnl" className="break-words">{formatCurrency(summary.totalRealisedPnl)}</span>
                 </div>
             </div>
 
@@ -58,9 +58,9 @@ export const SummaryCards = ({ summary }) => {
                     <PieChart className="w-6 h-6 mr-2" />
                     <h3 className="text-sm font-semibold" data-testid="label-unrealised-pnl">Unrealised PnL</h3>
                 </div>
-                <div className={`text-4xl font-semibold flex items-center ${getPnLColor(summary.totalUnrealisedPnl)}`}>
+                <div className={`min-w-0 text-3xl md:text-4xl font-semibold flex items-center leading-tight break-words tabular-nums ${getPnLColor(summary.totalUnrealisedPnl)}`}>
                     {getPnLIcon(summary.totalUnrealisedPnl)}
-                    <span data-testid="value-unrealised-pnl">{formatCurrency(summary.totalUnrealisedPnl)}</span>
+                    <span data-testid="value-unrealised-pnl" className="break-words">{formatCurrency(summary.totalUnrealisedPnl)}</span>
                 </div>
             </div>
 
@@ -69,7 +69,7 @@ export const SummaryCards = ({ summary }) => {
                     <BadgeDollarSign className="w-6 h-6 mr-2" />
                     <h3 className="text-sm font-semibold">Dividend Income</h3>
                 </div>
-                <div className="text-4xl font-semibold text-gain">
+                <div className="min-w-0 text-3xl md:text-4xl font-semibold leading-tight break-words tabular-nums text-gain">
                     {formatCurrency(summary.dividendIncomeThisYear ?? 0)}
                 </div>
                 <div className="text-sm text-text-muted mt-2">Net received this year</div>
