@@ -168,7 +168,7 @@ class DashboardServiceTest {
                 .thenReturn(List.of(buyTxn(stockId, today.minusDays(10), "1", "100")));
         when(priceSnapshotRepository.findByInvestmentIdOrderByFetchedAtDesc(stockId))
                 .thenReturn(List.of(snapshot(stockId, today.minusDays(1), "100")));
-        when(fxRateService.getRate(eq("USD"), eq("INR"), any(LocalDate.class)))
+        when(fxRateService.getLatestRate(eq("USD"), eq("INR")))
                 .thenReturn(Optional.of(BigDecimal.ONE));
 
         List<TrendResponse> trend = dashboardService.getTrendFiltered(

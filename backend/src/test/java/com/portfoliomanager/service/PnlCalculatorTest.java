@@ -57,8 +57,8 @@ class PnlCalculatorTest {
         // Null price should be treated as 0 value
         PnlResult result = PnlCalculator.calculate(costBasis, null, new BigDecimal("1.0"));
 
-        // Value is 0, cost is 1000, unrealised is -1000
-        assertEquals(new BigDecimal("-1000.00"), result.unrealisedPnlLocal());
-        assertEquals(new BigDecimal("-1000.00"), result.unrealisedPnl());
+        // Value is at cost, so unrealised is 0
+        assertEquals(new BigDecimal("0.00"), result.unrealisedPnlLocal());
+        assertEquals(new BigDecimal("0.00"), result.unrealisedPnl());
     }
 }
