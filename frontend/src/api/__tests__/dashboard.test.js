@@ -22,7 +22,7 @@ describe('Dashboard API', () => {
 
     const result = await dashboardApi.getSummary();
 
-    expect(global.fetch).toHaveBeenCalledWith('/api/dashboard/summary', expect.any(Object));
+    expect(global.fetch).toHaveBeenCalledWith('/api/dashboard/summary?homeCurrency=INR', expect.any(Object));
 
     // Strict mapping check per PRD
     expect(result).toHaveProperty('totalRealisedPnl', 10000);
