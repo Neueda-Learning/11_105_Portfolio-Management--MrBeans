@@ -7,6 +7,8 @@ import com.portfoliomanager.dto.pnl.CostBasisResult;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -85,6 +87,27 @@ class CostBasisCalculatorTest {
 
         assertEquals(0, BigDecimal.ZERO.compareTo(result.totalQuantity()));
         assertEquals(0, BigDecimal.ZERO.compareTo(result.avgCostLocal()));
+    }
+
+    @Test
+    void calculate_SameDayBuyAndSell_UsesCreatedAtTieBreaker() {
+        LocalDate sameDay = LocalDate.of(2026, 8, 7);
+
+        Transaction buy = createTx(TransactionType.BUY, "10", "100.0", "1.0");
+        buy.setTxnDate(sameDay);
+        buy.setCreatedAt(Instant.parse("2026-08-07T10:00:00Z"));
+
+        Transaction sell = createTx(TransactionType.SELL, "5", "110.0", "1.0");
+        sell.setTxnDate(sameDay);
+        sell.setCreatedAt(Instant.parse("2026-08-07T10:05:00Z"));
+
+        // Input order intentionally reversed; calculator should still process BUY first.
+        CostBasisResult result = CostBasisCalculator.calculate(List.of(sell, buy));
+
+        assertEquals(0, new BigDecimal("5").compareTo(result.totalQuantity()));
+        assertEquals(0, new BigDecimal("100.00000000").compareTo(result.avgCostLocal()));
+        assertEquals(0, new BigDecimal("50.00000000").compareTo(result.realisedPnlLocal()));
+        assertEquals(0, new BigDecimal("50.00000000").compareTo(result.realisedPnlHome()));
     }
 
     private Transaction createTx(TransactionType type, String qty, String price, String fx) {

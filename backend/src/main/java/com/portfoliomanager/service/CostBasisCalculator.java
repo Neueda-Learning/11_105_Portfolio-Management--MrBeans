@@ -5,6 +5,9 @@ import com.portfoliomanager.model.Transaction;
 import com.portfoliomanager.model.TransactionType;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.Instant;
+import java.util.Comparator;
 import java.math.RoundingMode;
 import java.util.List;
 
@@ -17,13 +20,22 @@ public class CostBasisCalculator {
     private CostBasisCalculator() {}
 
     public static CostBasisResult calculate(List<Transaction> transactions) {
+        // Keep same-day operations deterministic: apply earlier created rows first.
+        // This prevents SELL-before-BUY mis-ordering when txn_date is the same.
+        List<Transaction> orderedTransactions = transactions.stream()
+            .sorted(Comparator
+                .comparing(Transaction::getTxnDate, Comparator.nullsLast(LocalDate::compareTo))
+                .thenComparing(Transaction::getCreatedAt, Comparator.nullsLast(Instant::compareTo))
+                .thenComparing(t -> t.getId() == null ? "" : t.getId().toString()))
+            .toList();
+
         BigDecimal qty = BigDecimal.ZERO;
         BigDecimal costLocal = BigDecimal.ZERO;
         BigDecimal costHome = BigDecimal.ZERO;
         BigDecimal realisedLocal = BigDecimal.ZERO;
         BigDecimal realisedHome = BigDecimal.ZERO;
 
-        for (Transaction t : transactions) {
+        for (Transaction t : orderedTransactions) {
             BigDecimal tQty = t.getQuantity() != null ? t.getQuantity() : BigDecimal.ZERO;
             BigDecimal tPrice = t.getPrice() != null ? t.getPrice() : BigDecimal.ZERO;
             BigDecimal tFx = t.getFxRateToHome() != null ? t.getFxRateToHome() : BigDecimal.ONE;

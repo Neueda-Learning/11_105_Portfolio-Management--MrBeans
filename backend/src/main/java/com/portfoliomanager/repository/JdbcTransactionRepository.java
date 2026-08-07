@@ -92,7 +92,7 @@ public class JdbcTransactionRepository implements TransactionRepository {
     @Override
     public List<Transaction> findByInvestmentIdOrderByTxnDateAsc(UUID investmentId) {
         String sql = "SELECT id, investment_id, type, quantity, price, currency, fx_rate_to_home, txn_date, created_at "
-                + "FROM transactions WHERE investment_id = ? ORDER BY txn_date ASC";
+                + "FROM transactions WHERE investment_id = ? ORDER BY txn_date ASC, created_at ASC, id ASC";
         return jdbcTemplate.query(sql, rowMapper, investmentId.toString());
     }
 
