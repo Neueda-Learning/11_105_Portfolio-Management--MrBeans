@@ -7,7 +7,17 @@ import { TransactionType } from '../../types/enums';
 
 
 
-export const TransactionHistoryTable = ({ transactions, investmentCurrency = 'USD' }) => {
+export const TransactionHistoryTable = ({ transactions, investmentCurrency = 'USD', homeCurrency = 'INR' }) => {
+    const formatHomeValue = (txn) => {
+        const fxRate = Number(txn.fxRateToHome);
+        if (!Number.isFinite(fxRate) || fxRate <= 0) {
+            return '—';
+        }
+
+        const total = Number(txn.quantity || 0) * Number(txn.price || 0) * fxRate;
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: homeCurrency }).format(total);
+    };
+
   return (
     <div className="bg-card rounded-lg overflow-hidden">
             <div className="px-6 py-4 bg-card-alt">
@@ -20,12 +30,14 @@ export const TransactionHistoryTable = ({ transactions, investmentCurrency = 'US
                         <th className="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Type</th>
                         <th className="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Quantity</th>
                         <th className="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Price</th>
+                                                <th className="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">FX Rate</th>
+                                                <th className="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Home Value</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
                     {transactions.length === 0 ?
           <tr>
-                            <td colSpan={5} className="px-6 py-12 text-center text-text-muted">
+                                                        <td colSpan={6} className="px-6 py-12 text-center text-text-muted">
                                 No transactions found for this investment.
                             </td>
                         </tr> :
@@ -47,6 +59,12 @@ export const TransactionHistoryTable = ({ transactions, investmentCurrency = 'US
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-text-heading text-right">
                                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: investmentCurrency }).format(txn.price)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-heading text-right">
+                                    {txn.fxRateToHome != null ? Number(txn.fxRateToHome).toLocaleString(undefined, { maximumFractionDigits: 8 }) : '—'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-text-heading text-right">
+                                    {formatHomeValue(txn)}
                                 </td>
                             </tr>
           )

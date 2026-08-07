@@ -10,19 +10,21 @@ import { DividendFormModal } from './DividendFormModal';
 import { ChevronLeft, Plus } from 'lucide-react';
 import { transactionsApi } from '../../api/transactions';
 import { dividendsApi } from '../../api/dividends';
+import { useSettingsStore } from '../../store/useSettingsStore';
 
 
 export const InvestmentDetailPage = () => {
   const { id } = useParams();
   const { investment, transactions, pnl, isLoading, error, refresh } = useInvestmentDetail(id || '');
   const { dividends, refresh: refreshDividends } = useDividends(id || '');
+  const baseCurrency = useSettingsStore((s) => s.baseCurrency) || 'INR';
 
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isDividendModalOpen, setIsDividendModalOpen] = useState(false);
 
   const handleAddTransaction = async (data) => {
     try {
-      await transactionsApi.create(data);
+      await transactionsApi.create(data, baseCurrency);
       await refresh();
       return { success: true, error: null };
     } catch (err) {
@@ -91,9 +93,19 @@ export const InvestmentDetailPage = () => {
         </div>
       </div>
 
-      <PnlBreakdown realisedPnl={pnl.realisedPnl} unrealisedPnl={pnl.unrealisedPnl} />
+      <PnlBreakdown
+        realisedPnl={pnl.realisedPnl}
+        unrealisedPnl={pnl.unrealisedPnl}
+        realisedPnlLocal={pnl.realisedPnlLocal}
+        unrealisedPnlLocal={pnl.unrealisedPnlLocal}
+        investmentCurrency={investment.currency}
+      />
 
-      <TransactionHistoryTable transactions={transactions} investmentCurrency={investment.currency} />
+      <TransactionHistoryTable
+        transactions={transactions}
+        investmentCurrency={investment.currency}
+        homeCurrency={baseCurrency}
+      />
 
       <DividendHistoryTable dividends={dividends} onDelete={handleDeleteDividend} />
 

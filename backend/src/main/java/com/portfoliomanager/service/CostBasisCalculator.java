@@ -20,6 +20,10 @@ public class CostBasisCalculator {
     private CostBasisCalculator() {}
 
     public static CostBasisResult calculate(List<Transaction> transactions) {
+        return calculate(transactions, null, null);
+    }
+
+    public static CostBasisResult calculate(List<Transaction> transactions, String homeCurrency, FxRateService fxRateService) {
         // Keep same-day operations deterministic: apply earlier created rows first.
         // This prevents SELL-before-BUY mis-ordering when txn_date is the same.
         List<Transaction> orderedTransactions = transactions.stream()
@@ -38,7 +42,7 @@ public class CostBasisCalculator {
         for (Transaction t : orderedTransactions) {
             BigDecimal tQty = t.getQuantity() != null ? t.getQuantity() : BigDecimal.ZERO;
             BigDecimal tPrice = t.getPrice() != null ? t.getPrice() : BigDecimal.ZERO;
-            BigDecimal tFx = t.getFxRateToHome() != null ? t.getFxRateToHome() : BigDecimal.ONE;
+            BigDecimal tFx = resolveFxRate(t, homeCurrency, fxRateService);
 
             if (t.getType() == TransactionType.BUY || t.getType() == TransactionType.DEPOSIT) {
                 qty = qty.add(tQty);
@@ -76,5 +80,25 @@ public class CostBasisCalculator {
         BigDecimal finalAvgHome = qty.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO : costHome.divide(qty, 8, RoundingMode.HALF_UP);
 
         return new CostBasisResult(qty, finalAvgLocal, finalAvgHome, realisedLocal, realisedHome);
+    }
+
+    private static BigDecimal resolveFxRate(Transaction transaction, String homeCurrency, FxRateService fxRateService) {
+        if (transaction.getFxRateToHome() != null && transaction.getFxRateToHome().compareTo(BigDecimal.ZERO) > 0) {
+            return transaction.getFxRateToHome();
+        }
+
+        String sourceCurrency = transaction.getCurrency();
+        if (sourceCurrency == null || sourceCurrency.isBlank() || homeCurrency == null || homeCurrency.isBlank()) {
+            return BigDecimal.ONE;
+        }
+        if (sourceCurrency.equalsIgnoreCase(homeCurrency)) {
+            return BigDecimal.ONE;
+        }
+
+        if (fxRateService == null || transaction.getTxnDate() == null) {
+            return BigDecimal.ONE;
+        }
+
+        return fxRateService.getRate(sourceCurrency, homeCurrency, transaction.getTxnDate()).orElse(BigDecimal.ONE);
     }
 }

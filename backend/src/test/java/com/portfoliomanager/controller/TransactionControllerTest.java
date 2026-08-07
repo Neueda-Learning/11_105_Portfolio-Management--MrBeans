@@ -49,9 +49,9 @@ class TransactionControllerTest {
         CreateTransactionRequest request = new CreateTransactionRequest();
         TransactionResponse resp = new TransactionResponse();
         resp.setInvestmentId(investmentId);
-        when(transactionService.createTransaction(investmentId, request)).thenReturn(resp);
+        when(transactionService.createTransaction(investmentId, request, "USD")).thenReturn(resp);
 
-        TransactionResponse result = controller.createTransaction(investmentId, request);
+        TransactionResponse result = controller.createTransaction(investmentId, "USD", request);
         assertEquals(investmentId, result.getInvestmentId());
     }
 

@@ -22,9 +22,11 @@ import java.util.stream.Collectors;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final FxRateService fxRateService;
 
-    public TransactionService(TransactionRepository transactionRepository) {
+    public TransactionService(TransactionRepository transactionRepository, FxRateService fxRateService) {
         this.transactionRepository = transactionRepository;
+        this.fxRateService = fxRateService;
     }
 
     @Transactional(readOnly = true)
@@ -37,16 +39,33 @@ public class TransactionService {
 
     @CacheEvict(value = {"dashboard-summary", "dashboard-allocation", "dashboard-performance", "dashboard-trend"}, allEntries = true)
     @Transactional
-    public TransactionResponse createTransaction(UUID investmentId, CreateTransactionRequest request) {
+    public TransactionResponse createTransaction(UUID investmentId, CreateTransactionRequest request, String homeCurrency) {
         // Prevent future-dated transactions
         if (request.getTxnDate() != null && request.getTxnDate().isAfter(java.time.LocalDate.now())) {
             throw new IllegalArgumentException("Transaction date cannot be in the future.");
         }
 
+        String requestCurrency = request.getCurrency();
+        String resolvedHomeCurrency = homeCurrency != null ? homeCurrency : requestCurrency;
+
+        if (requestCurrency == null || requestCurrency.isBlank()) {
+            request.setCurrency(resolvedHomeCurrency);
+        }
+
+        if (request.getFxRateToHome() == null || request.getFxRateToHome().compareTo(BigDecimal.ZERO) <= 0) {
+            BigDecimal resolvedFx = request.getCurrency() == null || resolvedHomeCurrency == null
+                    ? BigDecimal.ONE
+                    : fxRateService.getRate(request.getCurrency(), resolvedHomeCurrency, request.getTxnDate()).orElse(BigDecimal.ONE);
+            request.setFxRateToHome(resolvedFx);
+        }
+
         // Validate sell: cannot sell more than current holdings
         if (request.getType() == TransactionType.SELL || request.getType() == TransactionType.WITHDRAWAL) {
             List<Transaction> existing = transactionRepository.findByInvestmentIdOrderByTxnDateAsc(investmentId);
-            CostBasisResult holdings = CostBasisCalculator.calculate(existing);
+            List<Transaction> eligibleHoldings = existing.stream()
+                    .filter(txn -> !txn.getTxnDate().isAfter(request.getTxnDate()))
+                    .toList();
+            CostBasisResult holdings = CostBasisCalculator.calculate(eligibleHoldings, resolvedHomeCurrency, fxRateService);
             BigDecimal sellQty = request.getQuantity() != null ? request.getQuantity() : BigDecimal.ZERO;
             if (sellQty.compareTo(holdings.totalQuantity()) > 0) {
                 throw new IllegalArgumentException(

@@ -300,7 +300,7 @@ public class DashboardService {
                 .stream()
                 .filter(t -> !t.getTxnDate().isAfter(date))
                 .collect(Collectors.toList());
-        CostBasisResult cb = CostBasisCalculator.calculate(txns);
+        CostBasisResult cb = CostBasisCalculator.calculate(txns, homeCurrency, fxRateService);
 
         BigDecimal currentPrice = getLatestPriceBeforeDate(inv.getId(), date);
         // getRate() now resolves via inverse / cross-rate / on-demand fetch before falling back to 1.0

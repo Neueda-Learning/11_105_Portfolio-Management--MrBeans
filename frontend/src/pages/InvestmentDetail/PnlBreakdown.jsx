@@ -7,7 +7,7 @@ import { useSettingsStore } from '../../store/useSettingsStore';
 
 
 
-export const PnlBreakdown = ({ realisedPnl, unrealisedPnl }) => {
+export const PnlBreakdown = ({ realisedPnl, unrealisedPnl, realisedPnlLocal, unrealisedPnlLocal, investmentCurrency = 'USD' }) => {
   const { baseCurrency } = useSettingsStore();
 
   const formatCurrency = (value) => {
@@ -34,8 +34,13 @@ export const PnlBreakdown = ({ realisedPnl, unrealisedPnl }) => {
                 </div>
                 <div className={`text-4xl font-semibold flex items-center ${getPnLColor(realisedPnl)}`}>
                     {getPnLIcon(realisedPnl)}
-                    <span>{formatCurrency(realisedPnl)}</span>
+                <span>{formatCurrency(realisedPnl)}</span>
                 </div>
+              {realisedPnlLocal != null && (
+                <div className="mt-2 text-xs text-text-muted">
+                    Local ({investmentCurrency}): {new Intl.NumberFormat('en-US', { style: 'currency', currency: investmentCurrency }).format(realisedPnlLocal)}
+                </div>
+              )}
             </div>
 
             <div className="bg-card rounded-xl p-8">
@@ -45,8 +50,13 @@ export const PnlBreakdown = ({ realisedPnl, unrealisedPnl }) => {
                 </div>
                 <div className={`text-4xl font-semibold flex items-center ${getPnLColor(unrealisedPnl)}`}>
                     {getPnLIcon(unrealisedPnl)}
-                    <span>{formatCurrency(unrealisedPnl)}</span>
+                <span>{formatCurrency(unrealisedPnl)}</span>
                 </div>
+              {unrealisedPnlLocal != null && (
+                <div className="mt-2 text-xs text-text-muted">
+                    Local ({investmentCurrency}): {new Intl.NumberFormat('en-US', { style: 'currency', currency: investmentCurrency }).format(unrealisedPnlLocal)}
+                </div>
+              )}
             </div>
         </div>);
 

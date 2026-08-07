@@ -5,6 +5,7 @@ import com.portfoliomanager.service.TransactionService;
 import com.portfoliomanager.dto.transaction.CreateTransactionRequest;
 import com.portfoliomanager.dto.transaction.TransactionResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,8 +31,11 @@ public class TransactionController {
     @ResponseStatus(HttpStatus.CREATED)
     public TransactionResponse createTransaction(
             @PathVariable UUID investmentId,
+            @RequestParam(defaultValue = "INR")
+            @Pattern(regexp = "^[A-Za-z]{3}$", message = "homeCurrency must be a 3-letter ISO code")
+            String homeCurrency,
             @Valid @RequestBody CreateTransactionRequest request) {
-        return transactionService.createTransaction(investmentId, request);
+        return transactionService.createTransaction(investmentId, request, homeCurrency);
     }
 
     @DeleteMapping("/{id}")

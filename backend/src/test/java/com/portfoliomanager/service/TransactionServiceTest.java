@@ -31,11 +31,14 @@ class TransactionServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private FxRateService fxRateService;
+
     private TransactionService transactionService;
 
     @BeforeEach
     void setUp() {
-        transactionService = new TransactionService(transactionRepository);
+        transactionService = new TransactionService(transactionRepository, fxRateService);
     }
 
     @Test
@@ -83,7 +86,7 @@ class TransactionServiceTest {
         Transaction saved = buildTransaction(investmentId, TransactionType.BUY, "10.00000000", "150.00000000");
         when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
 
-        TransactionResponse response = transactionService.createTransaction(investmentId, request);
+        TransactionResponse response = transactionService.createTransaction(investmentId, request, "USD");
 
         assertNotNull(response);
         assertEquals(saved.getId(), response.getId());
@@ -100,7 +103,7 @@ class TransactionServiceTest {
         request.setTxnDate(LocalDate.now().plusDays(5));
 
         assertThrows(IllegalArgumentException.class,
-                () -> transactionService.createTransaction(investmentId, request));
+            () -> transactionService.createTransaction(investmentId, request, "USD"));
         verify(transactionRepository, never()).save(any());
     }
 
@@ -120,9 +123,29 @@ class TransactionServiceTest {
         request.setTxnDate(LocalDate.now().minusDays(1));
 
         assertThrows(IllegalArgumentException.class,
-                () -> transactionService.createTransaction(investmentId, request));
+            () -> transactionService.createTransaction(investmentId, request, "USD"));
         verify(transactionRepository, never()).save(any());
     }
+
+        @Test
+        void createTransaction_SellBeforeBuyDate_ThrowsIllegalArgument() {
+        UUID investmentId = UUID.randomUUID();
+
+        Transaction futureBuy = buildTransaction(investmentId, TransactionType.BUY, "10", "100");
+        futureBuy.setTxnDate(LocalDate.now().plusDays(2));
+        when(transactionRepository.findByInvestmentIdOrderByTxnDateAsc(investmentId))
+            .thenReturn(List.of(futureBuy));
+
+        CreateTransactionRequest request = new CreateTransactionRequest();
+        request.setType(TransactionType.SELL);
+        request.setQuantity(new BigDecimal("1"));
+        request.setPrice(new BigDecimal("120"));
+        request.setTxnDate(LocalDate.now());
+
+        assertThrows(IllegalArgumentException.class,
+            () -> transactionService.createTransaction(investmentId, request, "USD"));
+        verify(transactionRepository, never()).save(any());
+        }
 
     @Test
     void createTransaction_ValidSell_Succeeds() {
@@ -143,9 +166,35 @@ class TransactionServiceTest {
         Transaction saved = buildTransaction(investmentId, TransactionType.SELL, "5.00000000", "120.00000000");
         when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
 
-        TransactionResponse response = transactionService.createTransaction(investmentId, request);
+        TransactionResponse response = transactionService.createTransaction(investmentId, request, "USD");
         assertNotNull(response);
         assertEquals(TransactionType.SELL, response.getType());
+    }
+
+    @Test
+    void createTransaction_FillsMissingFxRateFromService() {
+        UUID investmentId = UUID.randomUUID();
+
+        CreateTransactionRequest request = new CreateTransactionRequest();
+        request.setType(TransactionType.BUY);
+        request.setQuantity(new BigDecimal("10"));
+        request.setPrice(new BigDecimal("150.00"));
+        request.setCurrency("EUR");
+        request.setTxnDate(LocalDate.now().minusDays(1));
+
+        when(fxRateService.getRate(eq("EUR"), eq("USD"), any(LocalDate.class)))
+                .thenReturn(Optional.of(new BigDecimal("1.10000000")));
+
+        Transaction saved = buildTransaction(investmentId, TransactionType.BUY, "10.00000000", "150.00000000");
+        saved.setCurrency("EUR");
+        saved.setFxRateToHome(new BigDecimal("1.10000000"));
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        transactionService.createTransaction(investmentId, request, "USD");
+
+        verify(transactionRepository).save(captor.capture());
+        assertEquals(new BigDecimal("1.10000000"), captor.getValue().getFxRateToHome());
     }
 
     @Test
