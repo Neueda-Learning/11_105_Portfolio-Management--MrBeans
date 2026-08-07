@@ -45,10 +45,12 @@ pipeline {
 				sh '''
 					docker run --rm \
 						--user "$(id -u):$(id -g)" \
+						-e HOME=/app \
+						-e NPM_CONFIG_CACHE=/app/.npm \
 						-v "$WORKSPACE/frontend:/app" \
 						-w /app \
 						node:22.22.2-alpine \
-						sh -lc "npm ci && npm run build && npm run test"
+						sh -lc "mkdir -p /app/.npm && npm ci --cache /app/.npm && npm run build && npm run test"
 				'''
 			}
 		}
