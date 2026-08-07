@@ -67,20 +67,20 @@ Check:
 docker-compose ps
 ```
 
-## 5. Start Docker stack (single-port VM mode)
+## 5. Start Docker stack (VM custom-port mode)
 
 Use this mode if port `80` is blocked but `8080` is reachable.
 
 - Frontend exposed on `8080`
-- Backend direct exposed on `8081`
+- Backend exposed on `8081`
 - Backend API proxied through frontend on `/api/*`
 
 Start:
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.vm-8080.yml down
-docker-compose -f docker-compose.yml -f docker-compose.vm-8080.yml up -d --build
-docker-compose -f docker-compose.yml -f docker-compose.vm-8080.yml ps
+docker-compose down
+BACKEND_PORT=8081 FRONTEND_PORT=8080 docker-compose up -d --build
+docker-compose ps
 ```
 
 ## 6. Runtime tests on VM
@@ -93,16 +93,16 @@ curl -I http://localhost:8080/swagger-ui/index.html
 curl -s http://localhost:8080/api/investments
 ```
 
-### Single-port mode tests
+### VM custom-port mode tests
 
 ```bash
-curl -I http://localhost:8080/
+curl -I http://localhost:8080
+curl -I http://localhost:8081/actuator/health
 curl -I http://localhost:8080/swagger-ui/index.html
 curl -s http://localhost:8080/api/investments
-curl -I http://localhost:8081/swagger-ui/index.html
 ```
 
-### Create investment API test
+### Create investment API test (frontend proxy path)
 
 ```bash
 curl -i -X POST "http://localhost:8080/api/investments" \
@@ -159,7 +159,15 @@ docker-compose up -d --build
 - Check owner:
 
 ```bash
-sudo ss -lntp '( sport = :8080 )'
+sudo ss -ltnp | grep :8080 || true
+docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Ports}}" | grep 8080 || true
+```
+
+If backend is incorrectly occupying 8080, stop and rerun with explicit ports:
+
+```bash
+docker-compose down
+BACKEND_PORT=8081 FRONTEND_PORT=8080 docker-compose up -d --build
 ```
 
 3. Frontend opens but API call fails:
