@@ -103,6 +103,16 @@
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
                         <version>0.8.12</version>
+                        <configuration>
+                            <excludes>
+                                <exclude>com/portfoliomanager/repository/Jdbc*</exclude>
+                                <exclude>com/portfoliomanager/client/YahooFinance*</exclude>
+                                <exclude>com/portfoliomanager/client/GeminiLlmClient*</exclude>
+                                <exclude>com/portfoliomanager/client/GroqLlmClient*</exclude>
+                                <exclude>com/portfoliomanager/config/*</exclude>
+                                <exclude>com/portfoliomanager/PortfolioManagerApplication*</exclude>
+                            </excludes>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>prepare-agent</id>
